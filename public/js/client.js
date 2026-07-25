@@ -25,23 +25,17 @@ function collectRiders() {
   return riders;
 }
 
-function sendSetup() {
+$('btn-start').addEventListener('click', () => {
   const riders = collectRiders();
-  if (!riders?.length) return false;
-  socket.emit('setup', {
+  if (!riders) {
+    alert('Wpisz co najmniej 1 zawodnika (max 2 na drużynę).');
+    return;
+  }
+  socket.emit('start-match', {
     riders,
     teamA: $('team-a-name').value.trim(),
     teamB: $('team-b-name').value.trim(),
   });
-  return true;
-}
-
-$('btn-start').addEventListener('click', () => {
-  if (!sendSetup()) {
-    alert('Wpisz co najmniej 1 zawodnika (max 2 na drużynę).');
-    return;
-  }
-  socket.emit('start-match');
 });
 
 $('overlay-content').addEventListener('click', (e) => {
@@ -79,7 +73,6 @@ socket.on('state', (state) => {
       const pts = trails.get(bike.slot);
       if (pts.length === 0) pts.push({ x: bike.x, y: bike.y });
       if (bike.fallen) continue;
-      const pts = trails.get(bike.slot);
       const last = pts[pts.length - 1];
       if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 1.5) {
         pts.push({ x: bike.x, y: bike.y });
