@@ -14,6 +14,7 @@ let mySlot = null;
 let gameState = null;
 let joined = false;
 let keysDown = new Set();
+const trails = new Map();
 
 const $ = (id) => document.getElementById(id);
 
@@ -66,6 +67,22 @@ socket.on('error', ({ message }) => {
 });
 
 socket.on('state', (state) => {
+  if (state.state === 'lobby' || (state.state === 'countdown' && state.countdown >= 3)) {
+    trails.clear();
+  }
+  if (state.state === 'racing') {
+    for (const bike of state.bikes || []) {
+      if (!trails.has(bike.slot)) trails.set(bike.slot, []);
+      if (bike.fallen) continue;
+      const points = trails.get(bike.slot);
+      const last = points[points.length - 1];
+      if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 2.5) {
+        points.push({ x: bike.x, y: bike.y });
+        if (points.length > 3000) points.shift();
+      }
+    }
+  }
+
   gameState = state;
   mySlot = state.players.find((p) => p.id === myId)?.slot ?? null;
   updateUI(state);
@@ -167,12 +184,11 @@ function renderFrame() {
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#1a472a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  TrackRender.drawTrack(ctx);
+  TrackRender.drawTrack(ctx, canvas.width, canvas.height);
 
-  if (state.bikes) {
+  if (state.bikes?.length) {
+    TrackRender.drawTrails(ctx, state.bikes, trails);
     for (const bike of state.bikes) {
       TrackRender.drawBike(ctx, bike);
     }
