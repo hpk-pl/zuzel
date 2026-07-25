@@ -4,54 +4,71 @@ const socket = io();
 const canvas = document.getElementById('track-canvas');
 const ctx = canvas.getContext('2d');
 
-let myId = null;
-let mySlot = null;
 let gameState = null;
-let joined = false;
 const trails = new Map();
+const pressedSlots = new Set();
 
 const $ = (id) => document.getElementById(id);
 
-$('btn-join').addEventListener('click', joinRoom);
-$('btn-ready').addEventListener('click', toggleReady);
-$('btn-start').addEventListener('click', () => socket.emit('start-match'));
-$('btn-next-heat').addEventListener('click', () => socket.emit('next-heat'));
-$('btn-reset').addEventListener('click', () => socket.emit('reset'));
-$('btn-save-teams').addEventListener('click', () => {
-  socket.emit('team-names', {
+function collectRiders() {
+  const riders = [];
+  document.querySelectorAll('.rider-row').forEach((row) => {
+    const slot = parseInt(row.dataset.slot, 10);
+    const name = row.querySelector('.rider-name').value.trim();
+    const team = row.querySelector('.rider-team').value;
+    if (!name) return;
+    riders.push({ slot, name, team });
+  });
+  const teamA = riders.filter((r) => r.team === 'A').length;
+  const teamB = riders.filter((r) => r.team === 'B').length;
+  if (!riders.length || teamA > 2 || teamB > 2) return null;
+  return riders;
+}
+
+function sendSetup() {
+  const riders = collectRiders();
+  if (!riders?.length) return false;
+  socket.emit('setup', {
+    riders,
     teamA: $('team-a-name').value.trim(),
     teamB: $('team-b-name').value.trim(),
   });
+  return true;
+}
+
+$('btn-start').addEventListener('click', () => {
+  if (!sendSetup()) {
+    alert('Wpisz co najmniej 1 zawodnika (max 2 na drużynę).');
+    return;
+  }
+  socket.emit('start-match');
+});
+
+$('overlay-content').addEventListener('click', (e) => {
+  if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
+  if (e.target.id === 'overlay-reset') socket.emit('reset');
 });
 
 document.addEventListener('keydown', (e) => {
-  if (!joined || mySlot === null) return;
-  if (e.code === SLOT_KEYS[mySlot]) {
-    e.preventDefault();
-    socket.emit('input', { turnLeft: true });
+  if (gameState?.state !== 'racing') return;
+  for (const [slot, key] of Object.entries(SLOT_KEYS)) {
+    if (e.code === key && !pressedSlots.has(slot)) {
+      e.preventDefault();
+      pressedSlots.add(slot);
+      socket.emit('input', { slot: parseInt(slot, 10), turnLeft: true });
+    }
   }
 });
+
 document.addEventListener('keyup', (e) => {
-  if (!joined || mySlot === null) return;
-  if (e.code === SLOT_KEYS[mySlot]) {
-    socket.emit('input', { turnLeft: false });
+  for (const [slot, key] of Object.entries(SLOT_KEYS)) {
+    if (e.code === key) {
+      pressedSlots.delete(slot);
+      socket.emit('input', { slot: parseInt(slot, 10), turnLeft: false });
+    }
   }
 });
 
-function joinRoom() {
-  socket.emit('join', {
-    name: $('player-name').value.trim() || 'Zawodnik',
-    roomId: $('room-id').value.trim() || 'main',
-    team: $('player-team').value,
-  });
-}
-
-function toggleReady() {
-  const me = gameState?.players.find((p) => p.id === myId);
-  if (me) socket.emit('ready', !me.ready);
-}
-
-socket.on('connect', () => { myId = socket.id; });
 socket.on('error', ({ message }) => alert(message));
 
 socket.on('state', (state) => {
@@ -69,47 +86,31 @@ socket.on('state', (state) => {
     }
   }
   gameState = state;
-  mySlot = state.players.find((p) => p.id === myId)?.slot ?? null;
   updateUI(state);
 });
 
 function updateUI(state) {
-  if (!joined && state.players.some((p) => p.id === myId)) {
-    joined = true;
-    $('lobby-status').classList.remove('hidden');
-    $('room-display').textContent = state.id;
-    $('btn-join').classList.add('hidden');
-    document.querySelector('.lobby-row').classList.add('hidden');
-  }
+  const inMatch = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
+  $('setup').classList.toggle('hidden', inMatch);
+  $('game-area').classList.toggle('hidden', !inMatch);
 
   $('team-a-name').value = state.teamAName || 'Drużyna A';
   $('team-b-name').value = state.teamBName || 'Drużyna B';
 
-  const teamsDiv = $('teams-display');
-  teamsDiv.innerHTML = `
+  $('teams-display').innerHTML = inMatch ? `
     <div class="team-score team-a">${escapeHtml(state.teamAName)}: <strong>${state.teamScores?.A ?? 0}</strong> pkt</div>
     <div class="team-score team-b">${escapeHtml(state.teamBName)}: <strong>${state.teamScores?.B ?? 0}</strong> pkt</div>
-  `;
+  ` : '';
 
-  $('player-list').innerHTML = state.players.map((p) => `
-    <li>
-      <span class="player-dot" style="background:${p.color}"></span>
-      <span>[${p.team}] ${escapeHtml(p.name)}${p.id === myId ? ' (Ty)' : ''} — ${p.totalPoints} pkt</span>
-      ${p.ready ? '<span class="ready-badge">Gotowy</span>' : ''}
-    </li>
-  `).join('');
-
-  const me = state.players.find((p) => p.id === myId);
-  const isHost = state.hostId === myId;
-
-  $('btn-ready').textContent = me?.ready ? 'Nie gotowy' : 'Gotowy';
-  $('btn-ready').classList.toggle('ready-on', !!me?.ready);
-  $('btn-start').classList.toggle('hidden', !(isHost && state.state === 'lobby'));
-  $('btn-next-heat').classList.toggle('hidden', !(isHost && state.state === 'heat_results'));
-  $('btn-reset').classList.toggle('hidden', !(isHost && (state.state === 'heat_results' || state.state === 'match_finished')));
-
-  const inGame = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
-  $('game-area').classList.toggle('hidden', !inGame);
+  if (state.players?.length && inMatch) {
+    const table = $('score-table');
+    table.classList.remove('hidden');
+    table.innerHTML = state.players.map((p) =>
+      `<div style="color:${p.color}">[${p.team}] ${escapeHtml(p.name)}: ${p.totalPoints} pkt</div>`
+    ).join('');
+  } else {
+    $('score-table').classList.add('hidden');
+  }
 
   updateOverlay(state);
   updateHud(state);
@@ -132,14 +133,17 @@ function updateOverlay(state) {
     const rows = state.lastHeatResults.map((r) =>
       `<div style="color:${r.color}">${escapeHtml(r.name)}: <strong>${r.label}</strong> → ${r.points} pkt</div>`
     ).join('');
+    const nextBtn = state.canNextHeat
+      ? '<button id="overlay-next-heat" class="btn primary overlay-btn">Następny bieg</button>'
+      : '';
     content.innerHTML = `
-      <div>Wynik biegu ${state.heatNumber}</div>
+      <div class="overlay-title">Wynik biegu ${state.heatNumber}</div>
       <div class="heat-results">${rows}</div>
       <div class="heat-totals">
         ${escapeHtml(state.teamAName)}: ${state.teamScores.A} ·
         ${escapeHtml(state.teamBName)}: ${state.teamScores.B}
       </div>
-      ${state.hostId === myId ? '<p class="hint">Kliknij „Następny bieg”</p>' : ''}`;
+      <div class="overlay-actions">${nextBtn}</div>`;
     return;
   }
 
@@ -152,10 +156,13 @@ function updateOverlay(state) {
       `<div style="color:${p.color}">[${p.team}] ${escapeHtml(p.name)}: ${p.totalPoints} pkt</div>`
     ).join('');
     content.innerHTML = `
-      <div>🏁 Koniec meczu!</div>
+      <div class="overlay-title">🏁 Koniec meczu!</div>
       <div class="winner">${winText}</div>
       <div class="final-score">${s.teamA.name} ${s.teamA.points} : ${s.teamB.points} ${s.teamB.name}</div>
-      <div class="heat-results">${players}</div>`;
+      <div class="heat-results">${players}</div>
+      <div class="overlay-actions">
+        <button id="overlay-reset" class="btn primary overlay-btn">Nowy mecz</button>
+      </div>`;
     return;
   }
 
@@ -175,19 +182,18 @@ function updateHud(state) {
     return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st}</div>`;
   }).join('');
 
-  $('score-board').innerHTML = state.players?.length
+  $('score-board').innerHTML = state.heatNumber
     ? `<div>${escapeHtml(state.teamAName)} ${state.teamScores?.A ?? 0} : ${state.teamScores?.B ?? 0} ${escapeHtml(state.teamBName)}</div>`
     : '';
 }
 
 function renderFrame() {
-  const state = gameState;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (state) {
+  if (gameState) {
     TrackRender.drawTrack(ctx, canvas.width, canvas.height);
-    if (state.bikes?.length) {
-      TrackRender.drawTrails(ctx, state.bikes, trails);
-      for (const b of state.bikes) TrackRender.drawBike(ctx, b);
+    if (gameState.bikes?.length) {
+      TrackRender.drawTrails(ctx, gameState.bikes, trails);
+      for (const b of gameState.bikes) TrackRender.drawBike(ctx, b);
     }
   }
   requestAnimationFrame(renderFrame);

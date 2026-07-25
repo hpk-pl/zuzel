@@ -13,33 +13,43 @@
       <p class="subtitle">Mecz 15 biegów · 2 drużyny · max 4 zawodników</p>
     </header>
 
-    <div id="lobby" class="panel">
-      <div class="lobby-row">
-        <label>Nick <input type="text" id="player-name" maxlength="16" placeholder="Twój nick"></label>
-        <label>Pokój <input type="text" id="room-id" value="main" maxlength="20"></label>
-        <label>Drużyna
-          <select id="player-team">
-            <option value="A">A</option>
-            <option value="B">B</option>
-          </select>
-        </label>
-        <button id="btn-join" class="btn primary">Dołącz</button>
+    <div id="setup" class="panel">
+      <h2>Zawodnicy</h2>
+      <p class="setup-hint">Wpisz nicki zawodników (puste pole = brak zawodnika). Max 2 na drużynę.</p>
+
+      <div class="riders-grid" id="riders-grid">
+        <div class="rider-row" data-slot="0">
+          <span class="rider-key red"><kbd>A</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 1 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+        </div>
+        <div class="rider-row" data-slot="1">
+          <span class="rider-key blue"><kbd>S</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 2 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+        </div>
+        <div class="rider-row" data-slot="2">
+          <span class="rider-key green"><kbd>K</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 3 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+        </div>
+        <div class="rider-row" data-slot="3">
+          <span class="rider-key yellow"><kbd>L</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 4 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+        </div>
       </div>
-      <div id="lobby-status" class="hidden">
-        <h2>Pokój: <span id="room-display"></span></h2>
-        <div id="team-names-row" class="team-names-row">
-          <label>A: <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
-          <label>B: <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
-          <button id="btn-save-teams" class="btn">Zapisz nazwy</button>
-        </div>
-        <div id="teams-display"></div>
-        <ul id="player-list"></ul>
-        <div class="lobby-actions">
-          <button id="btn-ready" class="btn">Gotowy</button>
-          <button id="btn-start" class="btn primary hidden">Start meczu</button>
-          <button id="btn-next-heat" class="btn primary hidden">Następny bieg</button>
-          <button id="btn-reset" class="btn hidden">Nowy mecz</button>
-        </div>
+
+      <div class="team-names-row">
+        <label>Nazwa drużyny A <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
+        <label>Nazwa drużyny B <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
+      </div>
+
+      <div id="teams-display"></div>
+      <div id="score-table" class="score-table hidden"></div>
+
+      <div class="lobby-actions">
+        <button id="btn-start" class="btn primary">Start meczu</button>
       </div>
     </div>
 
@@ -55,13 +65,13 @@
     <div id="controls-help" class="panel">
       <h3>Sterowanie — skręt w lewo</h3>
       <div class="control-grid">
-        <div class="control-item red"><kbd>A</kbd> Drużyna A — Czerwony</div>
-        <div class="control-item blue"><kbd>S</kbd> Drużyna A — Niebieski</div>
-        <div class="control-item green"><kbd>K</kbd> Drużyna B — Zielony</div>
-        <div class="control-item yellow"><kbd>L</kbd> Drużyna B — Żółty</div>
+        <div class="control-item red"><kbd>A</kbd> Slot 1 — Czerwony</div>
+        <div class="control-item blue"><kbd>S</kbd> Slot 2 — Niebieski</div>
+        <div class="control-item green"><kbd>K</kbd> Slot 3 — Zielony</div>
+        <div class="control-item yellow"><kbd>L</kbd> Slot 4 — Żółty</div>
       </div>
       <p class="rules">
-        Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja biegu: 3-2-1-0 (upadek = u = 0 pkt).
+        Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja: 3-2-1-0 (upadek = u = 0 pkt).
         Start na dolnej prostej, jazda w prawo, skręt w lewo.
       </p>
     </div>

@@ -17,58 +17,46 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
 
 io.on('connection', (socket) => {
-  let currentRoom = null;
+  const room = gameManager.getOrCreateRoom('main');
+  room.setHost(socket.id);
+  socket.join('main');
+  socket.emit('state', room.getState());
 
-  socket.on('join', ({ roomId, name, team }) => {
-    const id = (roomId || 'main').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'main';
-    const room = gameManager.getOrCreateRoom(id);
-    if (!room.addPlayer(socket.id, name, team)) {
-      socket.emit('error', { message: 'Nie można dołączyć — pokój pełny lub gra trwa.' });
-      return;
+  socket.on('setup', ({ riders, teamA, teamB }) => {
+    if (room.hostId !== socket.id) return;
+    if (room.setupRiders(riders || [], teamA, teamB)) {
+      io.to('main').emit('state', room.getState());
+    } else {
+      socket.emit('error', { message: 'Ustaw co najmniej 1 zawodnika (max 2 na drużynę).' });
     }
-    currentRoom = room;
-    socket.join(id);
-    io.to(id).emit('state', room.getState());
-  });
-
-  socket.on('team-names', ({ teamA, teamB }) => {
-    if (!currentRoom || currentRoom.hostId !== socket.id) return;
-    currentRoom.setTeamNames(teamA, teamB);
-    io.to(currentRoom.id).emit('state', currentRoom.getState());
-  });
-
-  socket.on('ready', (ready) => {
-    if (!currentRoom) return;
-    currentRoom.setReady(socket.id, ready);
-    io.to(currentRoom.id).emit('state', currentRoom.getState());
   });
 
   socket.on('start-match', () => {
-    if (!currentRoom || currentRoom.hostId !== socket.id) return;
-    if (currentRoom.startMatch()) io.to(currentRoom.id).emit('state', currentRoom.getState());
+    if (room.hostId !== socket.id) return;
+    if (room.startMatch()) io.to('main').emit('state', room.getState());
+    else socket.emit('error', { message: 'Najpierw ustaw zawodników.' });
   });
 
   socket.on('next-heat', () => {
-    if (!currentRoom || currentRoom.hostId !== socket.id) return;
-    if (currentRoom.nextHeat()) io.to(currentRoom.id).emit('state', currentRoom.getState());
+    if (room.hostId !== socket.id) return;
+    if (room.nextHeat()) io.to('main').emit('state', room.getState());
   });
 
-  socket.on('input', ({ turnLeft }) => {
-    if (!currentRoom) return;
-    currentRoom.setInput(socket.id, turnLeft);
+  socket.on('input', ({ slot, turnLeft }) => {
+    room.setInput(slot, turnLeft);
   });
 
   socket.on('reset', () => {
-    if (!currentRoom || currentRoom.hostId !== socket.id) return;
-    currentRoom.reset();
-    io.to(currentRoom.id).emit('state', currentRoom.getState());
+    if (room.hostId !== socket.id) return;
+    room.reset();
+    io.to('main').emit('state', room.getState());
   });
 
   socket.on('disconnect', () => {
-    if (!currentRoom) return;
-    currentRoom.removePlayer(socket.id);
-    if (currentRoom.players.size === 0) gameManager.removeRoom(currentRoom.id);
-    else io.to(currentRoom.id).emit('state', currentRoom.getState());
+    if (room.hostId === socket.id) {
+      room.fullReset();
+      gameManager.removeRoom('main');
+    }
   });
 });
 
