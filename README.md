@@ -28,94 +28,82 @@ npm start
 
 Gra dostępna pod adresem `http://localhost:3000`.
 
-## Wdrożenie na serwer Hetzner
+## Wdrożenie na serwer Hetzner (zuzel.hpkgrupa.pl)
 
-### 1. Przygotowanie serwera
+Aplikacja trafia do:
+
+```
+/home/deploy/deploy/projects/zuzel
+```
+
+czyli na serwerze jako użytkownik `deploy`:
 
 ```bash
-# Na serwerze Hetzner (Ubuntu/Debian)
-sudo apt update && sudo apt install -y nodejs npm nginx certbot python3-certbot-nginx git
+~/deploy/projects/zuzel
+```
 
-# Sklonuj repozytorium
-cd ~
-git clone <twoje-repo> zuzel
+Domena: **https://zuzel.hpkgrupa.pl**
+
+### 1. DNS
+
+W panelu domeny `hpkgrupa.pl` dodaj rekord:
+
+| Typ | Nazwa | Wartość |
+|-----|-------|---------|
+| A | `zuzel` | IP serwera Hetzner |
+
+### 2. Pierwsza instalacja
+
+```bash
+# Na serwerze jako użytkownik deploy
+mkdir -p ~/deploy/projects
+cd ~/deploy/projects
+git clone https://github.com/hpk-pl/zuzel.git
 cd zuzel
+chmod +x deploy/install.sh
+./deploy/install.sh
+```
+
+Skrypt:
+- instaluje zależności npm,
+- uruchamia usługę systemd `zuzel` na porcie `3080`,
+- konfiguruje nginx dla `zuzel.hpkgrupa.pl`.
+
+### 3. Certyfikat SSL (jednorazowo)
+
+```bash
+sudo certbot --nginx -d zuzel.hpkgrupa.pl
+```
+
+### 4. Aktualizacja po zmianach w kodzie
+
+```bash
+cd ~/deploy/projects/zuzel
+git pull
 npm install --production
+sudo systemctl restart zuzel
 ```
 
-### 2. Usługa systemd
-
-Utwórz plik `/etc/systemd/system/zuzel.service`:
-
-```ini
-[Unit]
-Description=Zuzel multiplayer game
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/home/TWOJ_USER/zuzel
-Environment=NODE_ENV=production
-Environment=PORT=3000
-ExecStart=/usr/bin/node server/index.js
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Uruchom usługę:
+### 5. Przydatne komendy
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable zuzel
-sudo systemctl start zuzel
+# Status usługi
 sudo systemctl status zuzel
+
+# Logi
+journalctl -u zuzel -f
+
+# Health check
+curl http://127.0.0.1:3080/health
 ```
 
-### 3. Nginx (reverse proxy + HTTPS)
+### Pliki wdrożeniowe
 
-Utwórz `/etc/nginx/sites-available/zuzel`:
-
-```nginx
-server {
-    listen 80;
-    server_name twoja-domena.pl;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Aktywuj i uzyskaj certyfikat SSL:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/zuzel /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d twoja-domena.pl
-```
-
-### 4. Firewall
-
-```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-```
-
-### 5. Gra
-
-Otwórz `https://twoja-domena.pl` w przeglądarce. Do 4 graczy może dołączyć do tego samego pokoju (domyślnie `main`), kliknąć **Gotowy**, a host uruchamia wyścig.
+| Plik | Opis |
+|------|------|
+| `deploy/zuzel.service` | Usługa systemd |
+| `deploy/nginx-zuzel.hpkgrupa.pl.conf` | Reverse proxy nginx |
+| `deploy/install.sh` | Skrypt instalacji/aktualizacji |
 
 ## Architektura
 
