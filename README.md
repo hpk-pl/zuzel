@@ -7,8 +7,7 @@ Gra w żużel dla maksymalnie 4 graczy. Każdy zawodnik steruje motorem (kolorow
 - Jazda **przeciwnie do ruchu wskazówek zegara**
 - **4 okrążenia** — pierwszy na mecie wygrywa
 - Skręcanie **tylko w lewo** (jeden przycisk na gracza)
-- Wyjazd poza tor = spowolnienie
-- Kolizje z innymi zawodnikami spowalniają
+- Wjazd w bandę (wewnętrzną lub zewnętrzną) = upadek i eliminacja
 
 ## Sterowanie
 
