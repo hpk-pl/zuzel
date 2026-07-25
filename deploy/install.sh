@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Instalacja / aktualizacja Żużla na serwerze Hetzner.
 # Uruchom jako użytkownik deploy:
-#   cd ~/deploy/projects/zuzel && ./deploy/install.sh
+#   cd ~/projects/zuzel && ./deploy/install.sh
 
-APP_DIR="${APP_DIR:-$HOME/deploy/projects/zuzel}"
+APP_DIR="${APP_DIR:-$HOME/projects/zuzel}"
 SERVICE_NAME="zuzel"
 PORT=3080
 DOMAIN="zuzel.hpkgrupa.pl"

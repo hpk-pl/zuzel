@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=deploy
 Group=deploy
-WorkingDirectory=/home/deploy/deploy/projects/zuzel
+WorkingDirectory=/home/deploy/projects/zuzel
 Environment=NODE_ENV=production
 Environment=PORT=3080
 ExecStart=/usr/bin/node server/index.js

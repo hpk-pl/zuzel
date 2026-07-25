@@ -33,16 +33,30 @@ Gra dostępna pod adresem `http://localhost:3000`.
 Aplikacja trafia do:
 
 ```
-/home/deploy/deploy/projects/zuzel
-```
-
-czyli na serwerze jako użytkownik `deploy`:
-
-```bash
-~/deploy/projects/zuzel
+/home/deploy/projects/zuzel
 ```
 
 Domena: **https://zuzel.hpkgrupa.pl**
+
+### Jak działa domena przy wielu projektach?
+
+Rekord DNS **nie wskazuje na folder** — wskazuje tylko na **IP serwera**.
+
+| Warstwa | Co robi |
+|---------|---------|
+| **DNS** (rekord A `zuzel`) | Kieruje `zuzel.hpkgrupa.pl` → IP serwera Hetzner |
+| **nginx** | Na podstawie nazwy domeny przekierowuje ruch do właściwej aplikacji |
+| **systemd** | Uruchamia proces Node.js z katalogu `~/projects/zuzel` na porcie `3080` |
+
+Na jednym serwerze możesz mieć wiele domen i projektów:
+
+```
+zuzel.hpkgrupa.pl     → nginx → localhost:3080 → ~/projects/zuzel
+stocklab.hpkgrupa.pl  → nginx → localhost:???? → ~/projects/stocklab
+kroki.hpkgrupa.pl     → nginx → localhost:???? → ~/projects/kroki
+```
+
+Wszystkie rekordy A wskazują na **to samo IP**. Różnicę robi nginx — każda domena ma osobny plik konfiguracyjny w `/etc/nginx/sites-available/`.
 
 ### 1. DNS
 
@@ -50,14 +64,21 @@ W panelu domeny `hpkgrupa.pl` dodaj rekord:
 
 | Typ | Nazwa | Wartość |
 |-----|-------|---------|
-| A | `zuzel` | IP serwera Hetzner |
+| A | `zuzel` | IP serwera Hetzner (to samo co inne subdomeny) |
 
 ### 2. Pierwsza instalacja
 
 ```bash
 # Na serwerze jako użytkownik deploy
-mkdir -p ~/deploy/projects
-cd ~/deploy/projects
+cd ~/projects/zuzel
+chmod +x deploy/install.sh
+./deploy/install.sh
+```
+
+Jeśli katalog jeszcze nie istnieje:
+
+```bash
+cd ~/projects
 git clone https://github.com/hpk-pl/zuzel.git
 cd zuzel
 chmod +x deploy/install.sh
@@ -78,7 +99,7 @@ sudo certbot --nginx -d zuzel.hpkgrupa.pl
 ### 4. Aktualizacja po zmianach w kodzie
 
 ```bash
-cd ~/deploy/projects/zuzel
+cd ~/projects/zuzel
 git pull
 npm install --production
 sudo systemctl restart zuzel
