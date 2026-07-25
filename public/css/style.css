@@ -249,14 +249,62 @@ kbd {
   line-height: 1.5;
 }
 
-#overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+.setup-hint {
+  font-size: 0.85rem;
+  color: #8b949e;
+  margin-bottom: 1rem;
+}
+
+.riders-grid {
   display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.rider-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 130px;
+  gap: 0.75rem;
   align-items: center;
+}
+
+.rider-key {
+  text-align: center;
+}
+
+.rider-row .rider-name {
+  min-width: 0;
+  width: 100%;
+}
+
+.rider-row select {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+.score-table {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.overlay-title { font-size: 1.4rem; margin-bottom: 0.5rem; }
+
+.overlay-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
   justify-content: center;
-  z-index: 100;
+}
+
+.overlay-btn {
+  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
 }
 
 #overlay-content {
@@ -265,7 +313,20 @@ kbd {
   border-radius: 16px;
   padding: 2rem 3rem;
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+  max-width: 90vw;
+  pointer-events: auto;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: auto;
 }
 
 #overlay-content .countdown {

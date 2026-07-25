@@ -8,9 +8,9 @@ const {
   getFinishT,
 } = require('./track');
 
-const TEAM_A_SLOTS = [0, 1];
-const TEAM_B_SLOTS = [2, 3];
+const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
+const SLOT_KEYS = ['A', 'S', 'K', 'L'];
 
 const BIKE = {
   length: 22,
@@ -55,33 +55,31 @@ function calcHeatPoints(bikes) {
     .filter((b) => b.finished && b.finishTime)
     .sort((a, b) => a.finishTime - b.finishTime);
 
-  const results = bikes.map((b) => {
+  return bikes.map((b) => {
     if (b.fallen) {
-      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u', place: null };
+      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u' };
     }
     const idx = finishers.findIndex((f) => f.slot === b.slot);
     if (idx === -1) {
-      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u', place: null };
+      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u' };
     }
-    const place = idx + 1;
     return {
       slot: b.slot, name: b.name, color: b.color,
       points: HEAT_POINTS[idx] ?? 0,
-      label: String(place),
-      place,
+      label: String(idx + 1),
     };
   });
-  return results;
 }
 
 class GameRoom {
   constructor(roomId) {
     this.id = roomId;
-    this.players = new Map();
+    this.hostId = null;
+    /** @type {Map<number, {slot, name, team, color, input}>} */
+    this.riders = new Map();
     this.bikes = [];
     this.state = 'lobby';
     this.countdown = 0;
-    this.hostId = null;
     this.heatNumber = 0;
     this.teamAName = 'Drużyna A';
     this.teamBName = 'Drużyna B';
@@ -91,72 +89,64 @@ class GameRoom {
     this.matchSummary = null;
   }
 
-  addPlayer(id, name, team) {
+  setHost(socketId) {
+    this.hostId = socketId;
+  }
+
+  /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
+  setupRiders(riders, teamAName, teamBName) {
     if (this.state !== 'lobby') return false;
-    if (this.players.size >= 4) return false;
+    if (!riders.length) return false;
 
-    const wantTeam = team === 'B' ? 'B' : 'A';
-    const teamSlots = wantTeam === 'A' ? TEAM_A_SLOTS : TEAM_B_SLOTS;
-    const taken = [...this.players.values()].map((p) => p.slot);
-    const freeSlot = teamSlots.find((s) => !taken.includes(s));
-    if (freeSlot === undefined) return false;
+    const teamCount = { A: 0, B: 0 };
+    for (const r of riders) {
+      if (r.slot < 0 || r.slot > 3) return false;
+      const team = r.team === 'B' ? 'B' : 'A';
+      teamCount[team]++;
+      if (teamCount[team] > 2) return false;
+    }
 
-    if (this.players.size === 0) this.hostId = id;
+    this.riders.clear();
+    for (const r of riders) {
+      const team = r.team === 'B' ? 'B' : 'A';
+      this.riders.set(r.slot, {
+        slot: r.slot,
+        name: r.name.slice(0, 16) || `Zawodnik ${r.slot + 1}`,
+        team,
+        color: PLAYER_COLORS[r.slot],
+        input: { turnLeft: false },
+      });
+    }
 
-    this.players.set(id, {
-      id,
-      name: name || `Zawodnik ${freeSlot + 1}`,
-      slot: freeSlot,
-      team: wantTeam,
-      color: PLAYER_COLORS[freeSlot],
-      ready: false,
-      input: { turnLeft: false },
-    });
+    if (teamAName) this.teamAName = teamAName.slice(0, 24);
+    if (teamBName) this.teamBName = teamBName.slice(0, 24);
     return true;
   }
 
-  removePlayer(id) {
-    this.players.delete(id);
-    if (this.hostId === id) this.hostId = this.players.keys().next().value || null;
-    if (this.players.size === 0) this.reset();
-    else if (this.state !== 'lobby' && this.state !== 'match_finished') this.reset();
+  setInput(slot, turnLeft) {
+    const rider = this.riders.get(slot);
+    if (rider && this.state === 'racing') rider.input.turnLeft = !!turnLeft;
   }
 
-  setTeamNames(teamA, teamB) {
-    if (teamA) this.teamAName = teamA.slice(0, 24);
-    if (teamB) this.teamBName = teamB.slice(0, 24);
-  }
-
-  setReady(id, ready) {
-    const p = this.players.get(id);
-    if (p) p.ready = ready;
-  }
-
-  setInput(id, turnLeft) {
-    const p = this.players.get(id);
-    if (p && this.state === 'racing') p.input.turnLeft = !!turnLeft;
-  }
-
-  canStartMatch() {
-    if (this.players.size < 1) return false;
-    return [...this.players.values()].every((p) => p.ready);
+  getRiderList() {
+    return [...this.riders.values()].sort((a, b) => a.slot - b.slot);
   }
 
   startHeat() {
-    const positions = getStartPositions(this.players.size);
-    this.bikes = [];
-    let i = 0;
-    for (const p of this.players.values()) {
-      const pos = positions[i++];
-      this.bikes.push(createBike(pos.x, pos.y, pos.angle, p.color, p.name, p.slot));
-    }
+    const riders = this.getRiderList();
+    const positions = getStartPositions(riders.length);
+    this.bikes = riders.map((r, i) => {
+      const pos = positions[i];
+      return createBike(pos.x, pos.y, pos.angle, r.color, r.name, r.slot);
+    });
+    for (const r of riders) r.input.turnLeft = false;
     this.state = 'countdown';
     this.countdown = 3;
     this.lastHeatResults = null;
   }
 
   startMatch() {
-    if (!this.canStartMatch()) return false;
+    if (this.state !== 'lobby' || this.riders.size < 1) return false;
     this.heatNumber = 1;
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
@@ -187,8 +177,8 @@ class GameRoom {
       const bike = this.bikes[i];
       if (bike.finished || bike.fallen) continue;
 
-      const player = [...this.players.values()].find((p) => p.slot === bike.slot);
-      bike.turning = player?.input.turnLeft || false;
+      const rider = this.riders.get(bike.slot);
+      bike.turning = rider?.input.turnLeft || false;
       bike.speed = Math.min(BIKE.maxSpeed, bike.speed + BIKE.acceleration);
       if (bike.turning) bike.angle -= BIKE.turnRate;
 
@@ -224,8 +214,7 @@ class GameRoom {
       }
     }
 
-    const active = this.bikes.filter((b) => !b.finished && !b.fallen);
-    if (active.length === 0) this.finishHeat();
+    if (this.bikes.every((b) => b.finished || b.fallen)) this.finishHeat();
   }
 
   finishHeat() {
@@ -235,8 +224,8 @@ class GameRoom {
     for (const r of results) {
       this.scores[r.slot] = (this.scores[r.slot] || 0) + r.points;
     }
-    this.teamScores.A = TEAM_A_SLOTS.reduce((s, sl) => s + (this.scores[sl] || 0), 0);
-    this.teamScores.B = TEAM_B_SLOTS.reduce((s, sl) => s + (this.scores[sl] || 0), 0);
+    this.teamScores.A = [0, 1].reduce((s, sl) => s + (this.scores[sl] || 0), 0);
+    this.teamScores.B = [2, 3].reduce((s, sl) => s + (this.scores[sl] || 0), 0);
 
     if (this.heatNumber >= TOTAL_HEATS) {
       this.state = 'match_finished';
@@ -246,12 +235,9 @@ class GameRoom {
         teamA: { name: this.teamAName, points: this.teamScores.A },
         teamB: { name: this.teamBName, points: this.teamScores.B },
         winner,
-        players: [...this.players.values()].map((p) => ({
-          name: p.name,
-          slot: p.slot,
-          team: p.team,
-          color: p.color,
-          totalPoints: this.scores[p.slot] || 0,
+        players: this.getRiderList().map((p) => ({
+          name: p.name, slot: p.slot, team: p.team,
+          color: p.color, totalPoints: this.scores[p.slot] || 0,
         })),
       };
     } else {
@@ -268,10 +254,13 @@ class GameRoom {
     this.matchSummary = null;
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
-    for (const p of this.players.values()) {
-      p.ready = false;
-      p.input.turnLeft = false;
-    }
+    for (const r of this.riders.values()) r.input.turnLeft = false;
+  }
+
+  fullReset() {
+    this.riders.clear();
+    this.reset();
+    this.hostId = null;
   }
 
   getState() {
@@ -282,20 +271,19 @@ class GameRoom {
       totalLaps: TRACK.totalLaps,
       totalHeats: TOTAL_HEATS,
       heatNumber: this.heatNumber,
-      hostId: this.hostId,
       teamAName: this.teamAName,
       teamBName: this.teamBName,
       teamScores: this.teamScores,
       scores: this.scores,
       lastHeatResults: this.lastHeatResults,
       matchSummary: this.matchSummary,
-      players: [...this.players.values()].map((p) => ({
-        id: p.id,
+      canNextHeat: this.state === 'heat_results' && this.heatNumber < TOTAL_HEATS,
+      players: this.getRiderList().map((p) => ({
         name: p.name,
         slot: p.slot,
         team: p.team,
         color: p.color,
-        ready: p.ready,
+        key: SLOT_KEYS[p.slot],
         totalPoints: this.scores[p.slot] || 0,
       })),
       bikes: this.bikes.map((b) => ({
@@ -324,4 +312,4 @@ class GameManager {
   removeRoom(id) { this.rooms.delete(id); }
 }
 
-module.exports = { GameManager, BIKE, PLAYER_COLORS, TOTAL_HEATS };
+module.exports = { GameManager, BIKE, PLAYER_COLORS, SLOT_KEYS, TOTAL_HEATS };
