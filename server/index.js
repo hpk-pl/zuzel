@@ -22,19 +22,14 @@ io.on('connection', (socket) => {
   socket.join('main');
   socket.emit('state', room.getState());
 
-  socket.on('setup', ({ riders, teamA, teamB }) => {
+  socket.on('start-match', ({ riders, teamA, teamB }) => {
     if (room.hostId !== socket.id) return;
-    if (room.setupRiders(riders || [], teamA, teamB)) {
-      io.to('main').emit('state', room.getState());
-    } else {
+    if (!room.setupRiders(riders || [], teamA, teamB)) {
       socket.emit('error', { message: 'Ustaw co najmniej 1 zawodnika (max 2 na drużynę).' });
+      return;
     }
-  });
-
-  socket.on('start-match', () => {
-    if (room.hostId !== socket.id) return;
     if (room.startMatch()) io.to('main').emit('state', room.getState());
-    else socket.emit('error', { message: 'Najpierw ustaw zawodników.' });
+    else socket.emit('error', { message: 'Nie można rozpocząć meczu.' });
   });
 
   socket.on('next-heat', () => {

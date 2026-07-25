@@ -5,6 +5,7 @@ const {
   distanceToCenterline,
   bikeHitsBarrier,
   getStartPositions,
+  getFinishT,
 } = require('./track');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
@@ -94,7 +95,7 @@ class GameRoom {
 
   /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
   setupRiders(riders, teamAName, teamBName) {
-    if (this.state !== 'lobby') return false;
+    if (this.state !== 'lobby' && this.state !== 'match_finished') return false;
     if (!riders.length) return false;
 
     const teamCount = { A: 0, B: 0 };
@@ -146,7 +147,8 @@ class GameRoom {
   }
 
   startMatch() {
-    if (this.state !== 'lobby' || this.riders.size < 1) return false;
+    if (this.riders.size < 1) return false;
+    if (this.state !== 'lobby' && this.state !== 'match_finished') return false;
     this.heatNumber = 1;
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
