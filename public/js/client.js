@@ -149,8 +149,12 @@ function updateHud(state) {
 
   board.innerHTML = state.bikes
     .map((b) => {
-      const status = b.finished ? 'META ✓' : `Okr. ${b.lap}/${state.totalLaps}`;
-      return `<div style="color:${b.color}">${escapeHtml(b.name)}: ${status}</div>`;
+      let status;
+      if (b.fallen) status = 'UPADEK ✗';
+      else if (b.finished) status = 'META ✓';
+      else status = `Okr. ${b.lap}/${state.totalLaps}`;
+      const color = b.fallen ? '#888' : b.color;
+      return `<div style="color:${color}">${escapeHtml(b.name)}: ${status}</div>`;
     })
     .join('');
 }

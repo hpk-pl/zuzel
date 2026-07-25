@@ -6,117 +6,91 @@ const TRACK_CONFIG = {
   width: 70,
 };
 
-function centerlinePoint(t) {
+function traceStadium(ctx, halfWidth, side) {
   const { centerX, centerY, straightHalf, bendRadius } = TRACK_CONFIG;
-  const straightLen = straightHalf * 2;
-  const bendArc = Math.PI * bendRadius;
-  const total = 2 * straightLen + 2 * bendArc;
-
-  let d = ((t % 1) + 1) % 1;
-  d *= total;
-
   const leftX = centerX - straightHalf;
   const rightX = centerX + straightHalf;
-  const topY = centerY - bendRadius;
+  const r = bendRadius + side * halfWidth;
 
-  if (d < straightLen) {
-    const f = d / straightLen;
-    return { x: leftX + f * straightLen * 2, y: topY };
-  }
-  d -= straightLen;
-
-  if (d < bendArc) {
-    const f = d / bendArc;
-    const a = -Math.PI / 2 + f * Math.PI;
-    return {
-      x: rightX + Math.cos(a) * bendRadius,
-      y: centerY + Math.sin(a) * bendRadius,
-    };
-  }
-  d -= bendArc;
-
-  if (d < straightLen) {
-    const f = d / straightLen;
-    return { x: rightX - f * straightLen * 2, y: centerY + bendRadius };
-  }
-  d -= bendArc;
-
-  const f = d / bendArc;
-  const a = Math.PI / 2 + f * Math.PI;
-  return {
-    x: leftX + Math.cos(a) * bendRadius,
-    y: centerY + Math.sin(a) * bendRadius,
-  };
+  ctx.moveTo(leftX, centerY - r);
+  ctx.lineTo(rightX, centerY - r);
+  ctx.arc(rightX, centerY, r, -Math.PI / 2, Math.PI / 2, false);
+  ctx.lineTo(leftX, centerY + r);
+  ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, true);
 }
 
 function drawTrack(ctx) {
   const { width } = TRACK_CONFIG;
-  const segments = 160;
-  const inner = [];
-  const outer = [];
-
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    const p = centerlinePoint(t);
-    const pNext = centerlinePoint(t + 1 / segments);
-    const angle = Math.atan2(pNext.y - p.y, pNext.x - p.x);
-    const perp = angle + Math.PI / 2;
-    const hw = width / 2;
-    inner.push({ x: p.x + Math.cos(perp) * hw, y: p.y + Math.sin(perp) * hw });
-    outer.push({ x: p.x - Math.cos(perp) * hw, y: p.y - Math.sin(perp) * hw });
-  }
+  const hw = width / 2;
 
   ctx.fillStyle = '#2d5a27';
   ctx.beginPath();
-  ctx.moveTo(outer[0].x, outer[0].y);
-  for (let i = 1; i < outer.length; i++) ctx.lineTo(outer[i].x, outer[i].y);
-  for (let i = inner.length - 1; i >= 0; i--) ctx.lineTo(inner[i].x, inner[i].y);
-  ctx.closePath();
-  ctx.fill();
+  traceStadium(ctx, hw, 1);
+  traceStadium(ctx, hw, -1);
+  ctx.fill('evenodd');
 
   ctx.strokeStyle = '#f0f0f0';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(outer[0].x, outer[0].y);
-  for (let i = 1; i < outer.length; i++) ctx.lineTo(outer[i].x, outer[i].y);
+  traceStadium(ctx, hw, 1);
   ctx.closePath();
   ctx.stroke();
 
-  ctx.strokeStyle = '#f0f0f0';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(inner[0].x, inner[0].y);
-  for (let i = 1; i < inner.length; i++) ctx.lineTo(inner[i].x, inner[i].y);
+  traceStadium(ctx, hw, -1);
   ctx.closePath();
   ctx.stroke();
 
-  const start = centerlinePoint(0);
-  const startNext = centerlinePoint(0.01);
-  const sa = Math.atan2(startNext.y - start.y, startNext.x - start.x);
-  const perp = sa + Math.PI / 2;
-  const hw = width / 2;
+  const leftX = TRACK_CONFIG.centerX - TRACK_CONFIG.straightHalf;
+  const topY = TRACK_CONFIG.centerY - TRACK_CONFIG.bendRadius;
 
   ctx.strokeStyle = '#ff4444';
   ctx.lineWidth = 4;
   ctx.setLineDash([8, 8]);
   ctx.beginPath();
-  ctx.moveTo(
-    start.x + Math.cos(perp) * hw,
-    start.y + Math.sin(perp) * hw
-  );
-  ctx.lineTo(
-    start.x - Math.cos(perp) * hw,
-    start.y - Math.sin(perp) * hw
-  );
+  ctx.moveTo(leftX, topY - hw);
+  ctx.lineTo(leftX, topY + hw);
   ctx.stroke();
   ctx.setLineDash([]);
 
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
   ctx.font = '14px sans-serif';
-  ctx.fillText('META', start.x - 20, start.y - 15);
+  ctx.textAlign = 'left';
+  ctx.fillText('META', leftX - 42, topY - 8);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 12]);
+  ctx.beginPath();
+  ctx.moveTo(leftX + 30, topY - hw + 4);
+  ctx.lineTo(leftX + 30, topY + hw - 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 function drawBike(ctx, bike) {
+  if (bike.fallen) {
+    const len = 22;
+    const hx = Math.cos(bike.angle) * len * 0.5;
+    const hy = Math.sin(bike.angle) * len * 0.5;
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bike.x - hx, bike.y - hy);
+    ctx.lineTo(bike.x + hx * 0.3, bike.y + hy * 0.3);
+    ctx.stroke();
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('UPADEK', bike.x, bike.y - 16);
+    ctx.fillStyle = '#aaa';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(bike.name, bike.x, bike.y - 4);
+    return;
+  }
+
   const len = 22;
   const hx = Math.cos(bike.angle) * len * 0.5;
   const hy = Math.sin(bike.angle) * len * 0.5;
@@ -125,7 +99,7 @@ function drawBike(ctx, bike) {
   const x2 = bike.x + hx;
   const y2 = bike.y + hy;
 
-  ctx.strokeStyle = bike.offTrack ? '#888' : bike.color;
+  ctx.strokeStyle = bike.color;
   ctx.lineWidth = bike.turning ? 6 : 4;
   ctx.lineCap = 'round';
   ctx.beginPath();

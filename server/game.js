@@ -1,7 +1,7 @@
 const {
   TRACK,
   distanceToCenterline,
-  isOnTrack,
+  hasHitBarrier,
   getStartPositions,
 } = require('./track');
 
@@ -13,7 +13,6 @@ const BIKE = {
   maxSpeed: 7.5,
   minSpeed: 2.0,
   acceleration: 0.12,
-  offTrackDecel: 0.08,
   turnRate: 0.055,
   collisionSlowdown: 0.6,
   width: 6,
@@ -32,8 +31,9 @@ function createBike(x, y, angle, color, name, slot) {
     lastT: 0,
     finished: false,
     finishTime: null,
+    fallen: false,
+    fallTime: null,
     turning: false,
-    offTrack: false,
   };
 }
 
@@ -164,19 +164,13 @@ class GameRoom {
 
     for (let i = 0; i < this.bikes.length; i++) {
       const bike = this.bikes[i];
-      if (bike.finished) continue;
+      if (bike.finished || bike.fallen) continue;
 
       const player = [...this.players.values()].find((p) => p.slot === bike.slot);
       const turning = player?.input.turnLeft || false;
       bike.turning = turning;
 
-      bike.offTrack = !isOnTrack(bike.x, bike.y);
-
-      if (bike.offTrack) {
-        bike.speed = Math.max(BIKE.minSpeed, bike.speed - BIKE.offTrackDecel);
-      } else {
-        bike.speed = Math.min(BIKE.maxSpeed, bike.speed + BIKE.acceleration);
-      }
+      bike.speed = Math.min(BIKE.maxSpeed, bike.speed + BIKE.acceleration);
 
       if (turning) {
         bike.angle -= BIKE.turnRate;
@@ -185,6 +179,14 @@ class GameRoom {
       bike.x += Math.cos(bike.angle) * bike.speed;
       bike.y += Math.sin(bike.angle) * bike.speed;
 
+      if (hasHitBarrier(bike.x, bike.y)) {
+        bike.fallen = true;
+        bike.fallTime = Date.now();
+        bike.speed = 0;
+        bike.turning = false;
+        continue;
+      }
+
       const { t } = distanceToCenterline(bike.x, bike.y);
       updateLap(bike, prevPositions[i], t);
       bike.lastT = t;
@@ -192,6 +194,8 @@ class GameRoom {
 
     for (let i = 0; i < this.bikes.length; i++) {
       for (let j = i + 1; j < this.bikes.length; j++) {
+        if (this.bikes[i].fallen || this.bikes[j].fallen) continue;
+        if (this.bikes[i].finished || this.bikes[j].finished) continue;
         if (bikesCollide(this.bikes[i], this.bikes[j])) {
           this.bikes[i].speed *= BIKE.collisionSlowdown;
           this.bikes[j].speed *= BIKE.collisionSlowdown;
@@ -207,10 +211,13 @@ class GameRoom {
       }
     }
 
-  const active = this.bikes.filter((b) => !b.finished);
+  const active = this.bikes.filter((b) => !b.finished && !b.fallen);
     if (active.length === 0 && this.bikes.length > 0) {
       this.finishRace();
-    } else if (active.length === 1 && this.bikes.some((b) => b.finished)) {
+    } else if (
+      active.length === 1 &&
+      this.bikes.some((b) => b.finished)
+    ) {
       const last = active[0];
       last.finished = true;
       last.finishTime = Date.now();
@@ -262,8 +269,8 @@ class GameRoom {
         slot: b.slot,
         lap: b.lap,
         finished: b.finished,
+        fallen: b.fallen,
         turning: b.turning,
-        offTrack: b.offTrack,
       })),
       winner: this.winner
         ? { name: this.winner.name, color: this.winner.color, slot: this.winner.slot }
