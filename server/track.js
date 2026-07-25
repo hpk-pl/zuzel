@@ -8,16 +8,18 @@ const TRACK = {
   centerY: 350,
   straightHalf: 220,
   bendRadius: 130,
-  width: 105,
+  width: 135,
   totalLaps: 4,
 };
+
+const TOTAL_HEATS = 15;
+const HEAT_POINTS = [3, 2, 1, 0];
 
 function trackLength() {
   const straightLen = TRACK.straightHalf * 2;
   return 2 * straightLen + 2 * Math.PI * TRACK.bendRadius;
 }
 
-/** Pozycja t mety / startu (środek dolnej prostej) */
 function getFinishT() {
   const straightLen = TRACK.straightHalf * 2;
   return (straightLen / 2) / trackLength();
@@ -37,14 +39,12 @@ function centerlinePoint(t) {
   const topY = centerY - bendRadius;
   const botY = centerY + bendRadius;
 
-  // Dolna prosta: w lewo → w prawo
   if (d < straightLen) {
     const f = d / straightLen;
     return { x: leftX + f * straightLen * 2, y: botY, angle: 0 };
   }
   d -= straightLen;
 
-  // Prawy łuk: dół → góra
   if (d < bendArc) {
     const f = d / bendArc;
     const a = Math.PI / 2 - f * Math.PI;
@@ -56,14 +56,12 @@ function centerlinePoint(t) {
   }
   d -= bendArc;
 
-  // Górna prosta: w prawo → w lewo
   if (d < straightLen) {
     const f = d / straightLen;
     return { x: rightX - f * straightLen * 2, y: topY, angle: Math.PI };
   }
   d -= bendArc;
 
-  // Lewy łuk: góra → dół
   const f = d / bendArc;
   const a = -Math.PI / 2 + f * Math.PI;
   return {
@@ -99,27 +97,20 @@ function distanceToCenterline(x, y) {
   return { distance: Math.sqrt(best), t: bestT };
 }
 
-function isOnTrack(x, y) {
-  const { distance } = distanceToCenterline(x, y);
-  return distance <= TRACK.width / 2 - 3;
-}
-
-/** Wjazd w bandę (wewnętrzną lub zewnętrzną) = upadek */
 function hasHitBarrier(x, y) {
   const { distance } = distanceToCenterline(x, y);
-  return distance > TRACK.width / 2 - 3;
+  return distance > TRACK.width / 2 - 4;
 }
 
+/** Wszyscy na linii startu — rozstawienie prostopadle do toru */
 function getStartPositions(count) {
   const positions = [];
   const baseT = getFinishT();
-  const gridOffsets = [-0.012, -0.004, 0.004, 0.012];
+  const p = centerlineTangent(baseT);
+  const perpAngle = p.angle - Math.PI / 2;
 
   for (let i = 0; i < count; i++) {
-    const t = baseT + gridOffsets[i];
-    const p = centerlineTangent(t);
-    const perpAngle = p.angle - Math.PI / 2;
-    const laneOffset = (i - (count - 1) / 2) * 18;
+    const laneOffset = (i - (count - 1) / 2) * 22;
     positions.push({
       x: p.x + Math.cos(perpAngle) * laneOffset,
       y: p.y + Math.sin(perpAngle) * laneOffset,
@@ -129,34 +120,14 @@ function getStartPositions(count) {
   return positions;
 }
 
-function trackBounds() {
-  const { centerX, centerY, straightHalf, bendRadius, width } = TRACK;
-  const pad = width / 2 + 30;
-  return {
-    minX: centerX - straightHalf - bendRadius - pad,
-    maxX: centerX + straightHalf + bendRadius + pad,
-    minY: centerY - bendRadius - pad,
-    maxY: centerY + bendRadius + pad,
-  };
-}
-
-function sampleTrackPoints(segments = 120) {
-  const points = [];
-  for (let i = 0; i <= segments; i++) {
-    points.push(centerlinePoint(i / segments));
-  }
-  return points;
-}
-
 module.exports = {
   TRACK,
+  TOTAL_HEATS,
+  HEAT_POINTS,
   centerlinePoint,
   centerlineTangent,
   distanceToCenterline,
-  isOnTrack,
   hasHitBarrier,
   getStartPositions,
   getFinishT,
-  trackBounds,
-  sampleTrackPoints,
 };

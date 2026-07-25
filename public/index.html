@@ -10,28 +10,35 @@
   <div id="app">
     <header>
       <h1>🏍️ Żużel</h1>
-      <p class="subtitle">Multiplayer · max 4 graczy · skręt tylko w lewo</p>
+      <p class="subtitle">Mecz 15 biegów · 2 drużyny · max 4 zawodników</p>
     </header>
 
     <div id="lobby" class="panel">
       <div class="lobby-row">
-        <label>
-          Nick
-          <input type="text" id="player-name" maxlength="16" placeholder="Twój nick">
-        </label>
-        <label>
-          Pokój
-          <input type="text" id="room-id" value="main" maxlength="20">
+        <label>Nick <input type="text" id="player-name" maxlength="16" placeholder="Twój nick"></label>
+        <label>Pokój <input type="text" id="room-id" value="main" maxlength="20"></label>
+        <label>Drużyna
+          <select id="player-team">
+            <option value="A">A</option>
+            <option value="B">B</option>
+          </select>
         </label>
         <button id="btn-join" class="btn primary">Dołącz</button>
       </div>
       <div id="lobby-status" class="hidden">
         <h2>Pokój: <span id="room-display"></span></h2>
+        <div id="team-names-row" class="team-names-row">
+          <label>A: <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
+          <label>B: <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
+          <button id="btn-save-teams" class="btn">Zapisz nazwy</button>
+        </div>
+        <div id="teams-display"></div>
         <ul id="player-list"></ul>
         <div class="lobby-actions">
           <button id="btn-ready" class="btn">Gotowy</button>
-          <button id="btn-start" class="btn primary hidden">Start wyścigu</button>
-          <button id="btn-reset" class="btn hidden">Nowy wyścig</button>
+          <button id="btn-start" class="btn primary hidden">Start meczu</button>
+          <button id="btn-next-heat" class="btn primary hidden">Następny bieg</button>
+          <button id="btn-reset" class="btn hidden">Nowy mecz</button>
         </div>
       </div>
     </div>
@@ -41,21 +48,21 @@
       <div id="hud">
         <div id="race-info"></div>
         <div id="lap-board"></div>
+        <div id="score-board"></div>
       </div>
     </div>
 
     <div id="controls-help" class="panel">
-      <h3>Sterowanie (jeden przycisk na gracza — skręt w lewo)</h3>
+      <h3>Sterowanie — skręt w lewo</h3>
       <div class="control-grid">
-        <div class="control-item red"><kbd>A</kbd> Gracz 1 — Czerwony</div>
-        <div class="control-item blue"><kbd>S</kbd> Gracz 2 — Niebieski</div>
-        <div class="control-item green"><kbd>K</kbd> Gracz 3 — Zielony</div>
-        <div class="control-item yellow"><kbd>L</kbd> Gracz 4 — Żółty</div>
+        <div class="control-item red"><kbd>A</kbd> Drużyna A — Czerwony</div>
+        <div class="control-item blue"><kbd>S</kbd> Drużyna A — Niebieski</div>
+        <div class="control-item green"><kbd>K</kbd> Drużyna B — Zielony</div>
+        <div class="control-item yellow"><kbd>L</kbd> Drużyna B — Żółty</div>
       </div>
       <p class="rules">
-        Gaz cały czas włączony. Trzymaj przycisk, żeby skręcić w lewo (jak w prawdziwym żużlu).
-        Start na dolnej prostej — jazda w prawo, skręt w lewo (jak w żużlu).
-        Wjazd w bandę = upadek. Wyścig na 4 okrążenia — pierwszy na mecie wygrywa.
+        Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja biegu: 3-2-1-0 (upadek = u = 0 pkt).
+        Start na dolnej prostej, jazda w prawo, skręt w lewo.
       </p>
     </div>
 

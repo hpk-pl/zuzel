@@ -151,6 +151,43 @@ input {
   display: block;
 }
 
+.team-names-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0;
+}
+
+#teams-display {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.team-score {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.2);
+}
+
+.team-score.team-a { border-left: 3px solid #e63946; }
+.team-score.team-b { border-left: 3px solid #2a9d8f; }
+
+#score-board {
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.heat-results { margin: 1rem 0; font-size: 1rem; line-height: 1.8; }
+.heat-totals { font-size: 1.1rem; margin-top: 0.5rem; }
+.final-score { font-size: 1.3rem; margin: 0.5rem 0; }
+.hint { font-size: 0.85rem; color: #8b949e; margin-top: 0.5rem; }
+
 #hud {
   position: absolute;
   top: 12px;
@@ -158,6 +195,8 @@ input {
   right: 12px;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
   pointer-events: none;
 }
 
