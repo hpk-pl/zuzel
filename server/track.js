@@ -1,6 +1,6 @@
 /**
  * Owallowy tor żużlowy (kształt stadionu).
- * Jazda przeciwnie do ruchu wskazówek zegara, start w prawo.
+ * Start na środku dolnej prostej, jazda w prawo, skręt w lewo (CCW).
  */
 
 const TRACK = {
@@ -8,15 +8,26 @@ const TRACK = {
   centerY: 350,
   straightHalf: 220,
   bendRadius: 130,
-  width: 70,
+  width: 105,
   totalLaps: 4,
 };
+
+function trackLength() {
+  const straightLen = TRACK.straightHalf * 2;
+  return 2 * straightLen + 2 * Math.PI * TRACK.bendRadius;
+}
+
+/** Pozycja t mety / startu (środek dolnej prostej) */
+function getFinishT() {
+  const straightLen = TRACK.straightHalf * 2;
+  return (straightLen / 2) / trackLength();
+}
 
 function centerlinePoint(t) {
   const { centerX, centerY, straightHalf, bendRadius } = TRACK;
   const straightLen = straightHalf * 2;
   const bendArc = Math.PI * bendRadius;
-  const total = 2 * straightLen + 2 * bendArc;
+  const total = trackLength();
 
   let d = ((t % 1) + 1) % 1;
   d *= total;
@@ -26,35 +37,39 @@ function centerlinePoint(t) {
   const topY = centerY - bendRadius;
   const botY = centerY + bendRadius;
 
+  // Dolna prosta: w lewo → w prawo
   if (d < straightLen) {
     const f = d / straightLen;
-    return { x: leftX + f * straightLen * 2, y: topY, angle: 0 };
+    return { x: leftX + f * straightLen * 2, y: botY, angle: 0 };
   }
   d -= straightLen;
 
+  // Prawy łuk: dół → góra
   if (d < bendArc) {
     const f = d / bendArc;
-    const a = -Math.PI / 2 + f * Math.PI;
+    const a = Math.PI / 2 - f * Math.PI;
     return {
       x: rightX + Math.cos(a) * bendRadius,
       y: centerY + Math.sin(a) * bendRadius,
-      angle: a + Math.PI / 2,
+      angle: a - Math.PI / 2,
     };
   }
   d -= bendArc;
 
+  // Górna prosta: w prawo → w lewo
   if (d < straightLen) {
     const f = d / straightLen;
-    return { x: rightX - f * straightLen * 2, y: botY, angle: Math.PI };
+    return { x: rightX - f * straightLen * 2, y: topY, angle: Math.PI };
   }
   d -= bendArc;
 
+  // Lewy łuk: góra → dół
   const f = d / bendArc;
-  const a = Math.PI / 2 + f * Math.PI;
+  const a = -Math.PI / 2 + f * Math.PI;
   return {
     x: leftX + Math.cos(a) * bendRadius,
     y: centerY + Math.sin(a) * bendRadius,
-    angle: a + Math.PI / 2,
+    angle: a - Math.PI / 2,
   };
 }
 
@@ -86,24 +101,25 @@ function distanceToCenterline(x, y) {
 
 function isOnTrack(x, y) {
   const { distance } = distanceToCenterline(x, y);
-  return distance <= TRACK.width / 2 - 2;
+  return distance <= TRACK.width / 2 - 3;
 }
 
 /** Wjazd w bandę (wewnętrzną lub zewnętrzną) = upadek */
 function hasHitBarrier(x, y) {
   const { distance } = distanceToCenterline(x, y);
-  return distance > TRACK.width / 2 - 2;
+  return distance > TRACK.width / 2 - 3;
 }
 
 function getStartPositions(count) {
   const positions = [];
-  const gridOffsets = [0.0, 0.008, 0.016, 0.024];
+  const baseT = getFinishT();
+  const gridOffsets = [-0.012, -0.004, 0.004, 0.012];
 
   for (let i = 0; i < count; i++) {
-    const t = gridOffsets[i];
+    const t = baseT + gridOffsets[i];
     const p = centerlineTangent(t);
     const perpAngle = p.angle - Math.PI / 2;
-    const laneOffset = (i - (count - 1) / 2) * 14;
+    const laneOffset = (i - (count - 1) / 2) * 18;
     positions.push({
       x: p.x + Math.cos(perpAngle) * laneOffset,
       y: p.y + Math.sin(perpAngle) * laneOffset,
@@ -140,6 +156,7 @@ module.exports = {
   isOnTrack,
   hasHitBarrier,
   getStartPositions,
+  getFinishT,
   trackBounds,
   sampleTrackPoints,
 };

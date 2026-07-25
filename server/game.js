@@ -3,6 +3,7 @@ const {
   distanceToCenterline,
   hasHitBarrier,
   getStartPositions,
+  getFinishT,
 } = require('./track');
 
 const PLAYER_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a'];
@@ -29,6 +30,7 @@ function createBike(x, y, angle, color, name, slot) {
     slot,
     lap: 0,
     lastT: 0,
+    lapReady: false,
     finished: false,
     finishTime: null,
     fallen: false,
@@ -52,13 +54,18 @@ function bikesCollide(a, b) {
 }
 
 function updateLap(bike, prevT, newT) {
-  if (bike.finished) return;
+  if (bike.finished || bike.fallen) return;
 
-  const crossed =
-  (prevT > 0.85 && newT < 0.15) ||
-  (prevT > newT + 0.5);
+  const finishT = getFinishT();
 
-  if (crossed && bike.speed > 1) {
+  if (!bike.lapReady) {
+    if (Math.abs(newT - finishT) > 0.05) bike.lapReady = true;
+    return;
+  }
+
+  const crossed = prevT < finishT && newT >= finishT && bike.speed > 1;
+
+  if (crossed) {
     bike.lap += 1;
     if (bike.lap >= TRACK.totalLaps) {
       bike.finished = true;

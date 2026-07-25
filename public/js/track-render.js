@@ -3,7 +3,7 @@ const TRACK_CONFIG = {
   centerY: 350,
   straightHalf: 220,
   bendRadius: 130,
-  width: 70,
+  width: 105,
 };
 
 function traceStadium(ctx, halfWidth, side) {
@@ -49,14 +49,15 @@ function drawTrack(ctx, canvasW, canvasH) {
   ctx.stroke();
 
   const leftX = TRACK_CONFIG.centerX - TRACK_CONFIG.straightHalf;
-  const topY = TRACK_CONFIG.centerY - TRACK_CONFIG.bendRadius;
+  const botY = TRACK_CONFIG.centerY + TRACK_CONFIG.bendRadius;
+  const centerX = TRACK_CONFIG.centerX;
 
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 3;
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.moveTo(leftX, topY - hw);
-  ctx.lineTo(leftX, topY + hw);
+  ctx.moveTo(centerX, botY - hw);
+  ctx.lineTo(centerX, botY + hw);
   ctx.stroke();
 }
 
