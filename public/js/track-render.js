@@ -3,7 +3,7 @@ const TRACK_CONFIG = {
   centerY: 350,
   straightHalf: 220,
   bendRadius: 130,
-  width: 135,
+  width: 176,
 };
 
 function traceStadium(ctx, halfWidth, side) {
