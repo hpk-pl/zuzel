@@ -6,7 +6,6 @@ const {
   bikeHitsBarrier,
   getStartPositions,
   getFinishT,
-  getSteeringRadius,
 } = require('./track');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
@@ -17,6 +16,7 @@ const BIKE = {
   length: 22,
   maxSpeed: 7.5,
   acceleration: 0.12,
+  turnRate: 0.055,
   collisionSlowdown: 0.6,
 };
 
@@ -204,10 +204,7 @@ class GameRoom {
       const rider = this.riders.get(bike.slot);
       bike.turning = rider?.input.turnLeft || false;
       bike.speed = Math.min(BIKE.maxSpeed, bike.speed + BIKE.acceleration);
-      if (bike.turning && bike.speed > 0) {
-        const radius = getSteeringRadius(bike.x, bike.y);
-        bike.angle -= bike.speed / radius;
-      }
+      if (bike.turning) bike.angle -= BIKE.turnRate;
 
       bike.x += Math.cos(bike.angle) * bike.speed;
       bike.y += Math.sin(bike.angle) * bike.speed;
