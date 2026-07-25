@@ -1,14 +1,22 @@
 const SLOT_KEYS = { 0: 'KeyA', 1: 'KeyS', 2: 'KeyK', 3: 'KeyL' };
 
-const socket = io();
+const socket = io({ reconnection: true });
 const canvas = document.getElementById('track-canvas');
 const ctx = canvas.getContext('2d');
 
 let gameState = null;
+let socketConnected = false;
 const trails = new Map();
 const pressedSlots = new Set();
 
 const $ = (id) => document.getElementById(id);
+
+function setStartEnabled(enabled) {
+  const btn = $('btn-start');
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.title = enabled ? '' : 'Łączenie z serwerem…';
+}
 
 function collectRiders() {
   const riders = [];
@@ -25,17 +33,43 @@ function collectRiders() {
   return riders;
 }
 
-$('btn-start').addEventListener('click', () => {
+function startMatch() {
+  if (!socketConnected) {
+    alert('Brak połączenia z serwerem. Poczekaj chwilę lub odśwież stronę (F5).');
+    return;
+  }
   const riders = collectRiders();
   if (!riders) {
     alert('Wpisz co najmniej 1 zawodnika (max 2 na drużynę).');
     return;
   }
+  setStartEnabled(false);
   socket.emit('start-match', {
     riders,
     teamA: $('team-a-name').value.trim(),
     teamB: $('team-b-name').value.trim(),
   });
+}
+
+const btnStart = $('btn-start');
+if (btnStart) {
+  btnStart.addEventListener('click', startMatch);
+  setStartEnabled(false);
+}
+
+socket.on('connect', () => {
+  socketConnected = true;
+  setStartEnabled(true);
+});
+
+socket.on('disconnect', () => {
+  socketConnected = false;
+  setStartEnabled(false);
+});
+
+socket.on('connect_error', () => {
+  socketConnected = false;
+  setStartEnabled(false);
 });
 
 $('overlay-content').addEventListener('click', (e) => {
@@ -63,7 +97,10 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
-socket.on('error', ({ message }) => alert(message));
+socket.on('error', ({ message }) => {
+  setStartEnabled(socketConnected);
+  alert(message);
+});
 
 socket.on('state', (state) => {
   if (state.state === 'countdown' && state.countdown === 3) trails.clear();
@@ -88,6 +125,8 @@ function updateUI(state) {
   const inMatch = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
   $('setup').classList.toggle('hidden', inMatch);
   $('game-area').classList.toggle('hidden', !inMatch);
+
+  if (!inMatch) setStartEnabled(socketConnected);
 
   $('team-a-name').value = state.teamAName || 'Drużyna A';
   $('team-b-name').value = state.teamBName || 'Drużyna B';
