@@ -16,25 +16,41 @@ const gameManager = new GameManager();
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
 
+function emitState(room) {
+  for (const socketId of room.clients) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) socket.emit('state', room.getState(socketId));
+  }
+}
+
+function denyUnlessHost(socket, room) {
+  if (room.canControl(socket.id)) return true;
+  socket.emit('error', { message: 'Tylko host może wykonać tę akcję. Odśwież stronę (F5), aby zostać hostem.' });
+  return false;
+}
+
 io.on('connection', (socket) => {
   const room = gameManager.getOrCreateRoom('main');
-  room.setHost(socket.id);
+  room.addClient(socket.id);
   socket.join('main');
-  socket.emit('state', room.getState());
+  socket.emit('state', room.getState(socket.id));
 
   socket.on('start-match', ({ riders, teamA, teamB }) => {
-    if (room.hostId !== socket.id) return;
+    if (room.state !== 'lobby' && room.state !== 'match_finished') {
+      socket.emit('error', { message: 'Mecz już trwa.' });
+      return;
+    }
     if (!room.setupRiders(riders || [], teamA, teamB)) {
       socket.emit('error', { message: 'Ustaw co najmniej 1 zawodnika (max 2 na drużynę).' });
       return;
     }
-    if (room.startMatch()) io.to('main').emit('state', room.getState());
+    if (room.startMatch()) emitState(room);
     else socket.emit('error', { message: 'Nie można rozpocząć meczu.' });
   });
 
   socket.on('next-heat', () => {
-    if (room.hostId !== socket.id) return;
-    if (room.nextHeat()) io.to('main').emit('state', room.getState());
+    if (!denyUnlessHost(socket, room)) return;
+    if (room.nextHeat()) emitState(room);
   });
 
   socket.on('input', ({ slot, turnLeft }) => {
@@ -42,16 +58,19 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reset', () => {
-    if (room.hostId !== socket.id) return;
+    if (!denyUnlessHost(socket, room)) return;
     room.reset();
-    io.to('main').emit('state', room.getState());
+    emitState(room);
   });
 
   socket.on('disconnect', () => {
-    if (room.hostId === socket.id) {
+    room.removeClient(socket.id);
+    if (!room.hasClients()) {
       room.fullReset();
       gameManager.removeRoom('main');
+      return;
     }
+    emitState(room);
   });
 });
 
@@ -63,11 +82,11 @@ setInterval(() => {
       if (countdownCounter >= COUNTDOWN_TICK) {
         countdownCounter = 0;
         room.tickCountdown();
-        io.to(room.id).emit('state', room.getState());
+        emitState(room);
       }
     } else if (room.state === 'racing') {
       room.tickPhysics();
-      io.to(room.id).emit('state', room.getState());
+      emitState(room);
     }
   }
 }, 1000 / TICK_RATE);

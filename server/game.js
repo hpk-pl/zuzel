@@ -75,6 +75,7 @@ class GameRoom {
   constructor(roomId) {
     this.id = roomId;
     this.hostId = null;
+    this.clients = new Set();
     /** @type {Map<number, {slot, name, team, color, input}>} */
     this.riders = new Map();
     this.bikes = [];
@@ -91,6 +92,27 @@ class GameRoom {
 
   setHost(socketId) {
     this.hostId = socketId;
+  }
+
+  addClient(socketId) {
+    this.clients.add(socketId);
+    if (!this.hostId) this.hostId = socketId;
+  }
+
+  removeClient(socketId) {
+    this.clients.delete(socketId);
+    if (this.hostId === socketId) {
+      const [nextHost] = this.clients;
+      this.hostId = nextHost || null;
+    }
+  }
+
+  hasClients() {
+    return this.clients.size > 0;
+  }
+
+  canControl(socketId) {
+    return this.hostId === socketId;
   }
 
   /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
@@ -263,11 +285,14 @@ class GameRoom {
     this.riders.clear();
     this.reset();
     this.hostId = null;
+    this.clients.clear();
   }
 
-  getState() {
+  getState(forSocketId = null) {
     return {
       id: this.id,
+      hostId: this.hostId,
+      isHost: forSocketId ? this.hostId === forSocketId : false,
       state: this.state,
       countdown: this.countdown,
       totalLaps: TRACK.totalLaps,

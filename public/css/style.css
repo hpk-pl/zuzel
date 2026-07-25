@@ -89,6 +89,11 @@ input {
   background: #2ea043;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn.ready-on {
   background: #1f6feb;
   border-color: #388bfd;
