@@ -1,0 +1,246 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(160deg, #0f1419 0%, #1a2332 50%, #0d1117 100%);
+  color: #e6edf3;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+header h1 {
+  font-size: 2.4rem;
+  letter-spacing: 0.05em;
+}
+
+.subtitle {
+  color: #8b949e;
+  margin-top: 0.3rem;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.lobby-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 1rem;
+  min-width: 140px;
+}
+
+.btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #e6edf3;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: #30363d;
+}
+
+.btn.primary {
+  background: #238636;
+  border-color: #2ea043;
+}
+
+.btn.primary:hover {
+  background: #2ea043;
+}
+
+.btn.ready-on {
+  background: #1f6feb;
+  border-color: #388bfd;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#lobby-status h2 {
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem;
+  color: #8b949e;
+}
+
+#player-list {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+}
+
+#player-list li {
+  padding: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ready-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #238636;
+  margin-left: auto;
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+#game-area {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+#track-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 2px solid #30363d;
+  background: #1a472a;
+  display: block;
+}
+
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+#race-info, #lap-board {
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+#controls-help h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.control-item {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+}
+
+.control-item.red { border-left: 3px solid #e63946; }
+.control-item.blue { border-left: 3px solid #457b9d; }
+.control-item.green { border-left: 3px solid #2a9d8f; }
+.control-item.yellow { border-left: 3px solid #e9c46a; }
+
+kbd {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #21262d;
+  border: 1px solid #484f58;
+  font-family: inherit;
+  font-size: 0.85rem;
+  margin-right: 0.3rem;
+}
+
+.rules {
+  font-size: 0.85rem;
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#overlay-content {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  padding: 2rem 3rem;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+#overlay-content .countdown {
+  font-size: 5rem;
+  font-weight: bold;
+  color: #f0c040;
+}
+
+#overlay-content .winner {
+  font-size: 2rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  header h1 { font-size: 1.8rem; }
+  .lobby-row { flex-direction: column; align-items: stretch; }
+}

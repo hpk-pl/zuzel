@@ -1,0 +1,15 @@
+[Unit]
+Description=Zuzel multiplayer speedway game
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/zuzel
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
