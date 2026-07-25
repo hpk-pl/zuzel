@@ -19,23 +19,31 @@ function traceStadium(ctx, halfWidth, side) {
   ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, false);
 }
 
-function drawTrack(ctx) {
+function drawTrack(ctx, canvasW, canvasH) {
   const { width } = TRACK_CONFIG;
   const hw = width / 2;
 
-  ctx.fillStyle = '#2d5a27';
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  ctx.fillStyle = '#7a5230';
   ctx.beginPath();
   traceStadium(ctx, hw, 1);
   traceStadium(ctx, hw, -1);
   ctx.fill('evenodd');
 
-  ctx.strokeStyle = '#f0f0f0';
-  ctx.lineWidth = 3;
+  ctx.fillStyle = '#4a9e4f';
+  ctx.beginPath();
+  traceStadium(ctx, hw, -1);
+  ctx.fill();
+
+  ctx.strokeStyle = '#f5f5f0';
+  ctx.lineWidth = 4;
   ctx.beginPath();
   traceStadium(ctx, hw, 1);
   ctx.stroke();
 
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.beginPath();
   traceStadium(ctx, hw, -1);
   ctx.stroke();
@@ -43,28 +51,33 @@ function drawTrack(ctx) {
   const leftX = TRACK_CONFIG.centerX - TRACK_CONFIG.straightHalf;
   const topY = TRACK_CONFIG.centerY - TRACK_CONFIG.bendRadius;
 
-  ctx.strokeStyle = '#ff4444';
-  ctx.lineWidth = 4;
-  ctx.setLineDash([8, 8]);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(leftX, topY - hw);
   ctx.lineTo(leftX, topY + hw);
   ctx.stroke();
-  ctx.setLineDash([]);
+}
 
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('META', leftX - 42, topY - 8);
+function drawTrails(ctx, bikes, trails) {
+  for (const bike of bikes) {
+    const points = trails.get(bike.slot);
+    if (!points || points.length < 2) continue;
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 12]);
-  ctx.beginPath();
-  ctx.moveTo(leftX + 30, topY - hw + 4);
-  ctx.lineTo(leftX + 30, topY + hw - 4);
-  ctx.stroke();
-  ctx.setLineDash([]);
+    ctx.strokeStyle = bike.color;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawBike(ctx, bike) {
@@ -72,14 +85,14 @@ function drawBike(ctx, bike) {
     const len = 22;
     const hx = Math.cos(bike.angle) * len * 0.5;
     const hy = Math.sin(bike.angle) * len * 0.5;
-    ctx.strokeStyle = '#666';
+    ctx.strokeStyle = '#444';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(bike.x - hx, bike.y - hy);
     ctx.lineTo(bike.x + hx * 0.3, bike.y + hy * 0.3);
     ctx.stroke();
-    ctx.fillStyle = '#ff4444';
+    ctx.fillStyle = '#cc2222';
     ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('UPADEK', bike.x, bike.y - 16);
@@ -92,28 +105,14 @@ function drawBike(ctx, bike) {
   const len = 22;
   const hx = Math.cos(bike.angle) * len * 0.5;
   const hy = Math.sin(bike.angle) * len * 0.5;
-  const x1 = bike.x - hx;
-  const y1 = bike.y - hy;
-  const x2 = bike.x + hx;
-  const y2 = bike.y + hy;
 
   ctx.strokeStyle = bike.color;
-  ctx.lineWidth = bike.turning ? 6 : 4;
+  ctx.lineWidth = bike.turning ? 7 : 5;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
+  ctx.moveTo(bike.x - hx, bike.y - hy);
+  ctx.lineTo(bike.x + hx, bike.y + hy);
   ctx.stroke();
-
-  ctx.fillStyle = bike.color;
-  ctx.beginPath();
-  ctx.arc(x2, y2, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 11px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(bike.name, bike.x, bike.y - 14);
 }
 
-window.TrackRender = { drawTrack, drawBike, TRACK_CONFIG };
+window.TrackRender = { drawTrack, drawTrails, drawBike, TRACK_CONFIG };
