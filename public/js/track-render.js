@@ -16,7 +16,7 @@ function traceStadium(ctx, halfWidth, side) {
   ctx.lineTo(rightX, centerY - r);
   ctx.arc(rightX, centerY, r, -Math.PI / 2, Math.PI / 2, false);
   ctx.lineTo(leftX, centerY + r);
-  ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, true);
+  ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, false);
 }
 
 function drawTrack(ctx) {
@@ -33,13 +33,11 @@ function drawTrack(ctx) {
   ctx.lineWidth = 3;
   ctx.beginPath();
   traceStadium(ctx, hw, 1);
-  ctx.closePath();
   ctx.stroke();
 
   ctx.lineWidth = 2;
   ctx.beginPath();
   traceStadium(ctx, hw, -1);
-  ctx.closePath();
   ctx.stroke();
 
   const leftX = TRACK_CONFIG.centerX - TRACK_CONFIG.straightHalf;
