@@ -8,7 +8,7 @@ const TRACK = {
   centerY: 350,
   straightHalf: 220,
   bendRadius: 130,
-  width: 135,
+  width: 176,
   totalLaps: 4,
 };
 
@@ -142,15 +142,26 @@ function bikeHitsBarrier(x, y, angle) {
   return hasHitBarrier(frontX, frontY);
 }
 
-/** Start na linii mety — rozstawienie w poprzek toru */
+/** Losowa kolejność (Fisher-Yates) */
+function shuffleArray(items) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** Start na linii mety — losowe rozstawienie w poprzek toru w każdym biegu */
 function getStartPositions(riders) {
   const baseT = getFinishT();
   const p = centerlinePoint(baseT);
   const perpAngle = p.angle - Math.PI / 2;
   const count = riders.length;
+  const laneSpacing = 23;
 
-  return riders.map((rider, i) => {
-    const laneOffset = (i - (count - 1) / 2) * 18;
+  return shuffleArray(riders).map((rider, i) => {
+    const laneOffset = (i - (count - 1) / 2) * laneSpacing;
     return {
       slot: rider.slot,
       x: p.x + Math.cos(perpAngle) * laneOffset,
