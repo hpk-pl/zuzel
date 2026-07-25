@@ -1,6 +1,6 @@
 /**
  * Owallowy tor żużlowy (kształt stadionu).
- * Jazda przeciwnie do ruchu wskazówek zegara.
+ * Jazda przeciwnie do ruchu wskazówek zegara, start w prawo.
  */
 
 const TRACK = {
@@ -47,7 +47,7 @@ function centerlinePoint(t) {
     const f = d / straightLen;
     return { x: rightX - f * straightLen * 2, y: botY, angle: Math.PI };
   }
-  d -= straightLen;
+  d -= bendArc;
 
   const f = d / bendArc;
   const a = Math.PI / 2 + f * Math.PI;
@@ -86,7 +86,13 @@ function distanceToCenterline(x, y) {
 
 function isOnTrack(x, y) {
   const { distance } = distanceToCenterline(x, y);
-  return distance <= TRACK.width / 2 + 4;
+  return distance <= TRACK.width / 2 - 2;
+}
+
+/** Wjazd w bandę (wewnętrzną lub zewnętrzną) = upadek */
+function hasHitBarrier(x, y) {
+  const { distance } = distanceToCenterline(x, y);
+  return distance > TRACK.width / 2 - 2;
 }
 
 function getStartPositions(count) {
@@ -132,6 +138,7 @@ module.exports = {
   centerlineTangent,
   distanceToCenterline,
   isOnTrack,
+  hasHitBarrier,
   getStartPositions,
   trackBounds,
   sampleTrackPoints,
