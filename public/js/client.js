@@ -72,14 +72,16 @@ document.addEventListener('keyup', (e) => {
 socket.on('error', ({ message }) => alert(message));
 
 socket.on('state', (state) => {
-  if (state.state === 'countdown' && state.countdown >= 3) trails.clear();
+  if (state.state === 'countdown' && state.countdown === 3) trails.clear();
   if (state.state === 'racing') {
     for (const bike of state.bikes || []) {
       if (!trails.has(bike.slot)) trails.set(bike.slot, []);
+      const pts = trails.get(bike.slot);
+      if (pts.length === 0) pts.push({ x: bike.x, y: bike.y });
       if (bike.fallen) continue;
       const pts = trails.get(bike.slot);
       const last = pts[pts.length - 1];
-      if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 2.5) {
+      if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 1.5) {
         pts.push({ x: bike.x, y: bike.y });
         if (pts.length > 3000) pts.shift();
       }
@@ -101,16 +103,6 @@ function updateUI(state) {
     <div class="team-score team-a">${escapeHtml(state.teamAName)}: <strong>${state.teamScores?.A ?? 0}</strong> pkt</div>
     <div class="team-score team-b">${escapeHtml(state.teamBName)}: <strong>${state.teamScores?.B ?? 0}</strong> pkt</div>
   ` : '';
-
-  if (state.players?.length && inMatch) {
-    const table = $('score-table');
-    table.classList.remove('hidden');
-    table.innerHTML = state.players.map((p) =>
-      `<div style="color:${p.color}">[${p.team}] ${escapeHtml(p.name)}: ${p.totalPoints} pkt</div>`
-    ).join('');
-  } else {
-    $('score-table').classList.add('hidden');
-  }
 
   updateOverlay(state);
   updateHud(state);

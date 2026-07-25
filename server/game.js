@@ -3,9 +3,8 @@ const {
   TOTAL_HEATS,
   HEAT_POINTS,
   distanceToCenterline,
-  hasHitBarrier,
+  bikeHitsBarrier,
   getStartPositions,
-  getFinishT,
 } = require('./track');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
@@ -134,9 +133,10 @@ class GameRoom {
 
   startHeat() {
     const riders = this.getRiderList();
-    const positions = getStartPositions(riders.length);
-    this.bikes = riders.map((r, i) => {
-      const pos = positions[i];
+    const positions = getStartPositions(riders);
+    const posBySlot = Object.fromEntries(positions.map((p) => [p.slot, p]));
+    this.bikes = riders.map((r) => {
+      const pos = posBySlot[r.slot];
       return createBike(pos.x, pos.y, pos.angle, r.color, r.name, r.slot);
     });
     for (const r of riders) r.input.turnLeft = false;
@@ -185,7 +185,7 @@ class GameRoom {
       bike.x += Math.cos(bike.angle) * bike.speed;
       bike.y += Math.sin(bike.angle) * bike.speed;
 
-      if (hasHitBarrier(bike.x, bike.y)) {
+      if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
         bike.fallen = true;
         bike.fallTime = Date.now();
         bike.speed = 0;
