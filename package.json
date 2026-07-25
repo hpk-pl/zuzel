@@ -1,0 +1,17 @@
+{
+  "name": "zuzel",
+  "version": "1.0.0",
+  "description": "Multiplayer speedway (żużel) game for up to 4 players",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

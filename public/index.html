@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Żużel — gra multiplayer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🏍️ Żużel</h1>
+      <p class="subtitle">Multiplayer · max 4 graczy · skręt tylko w lewo</p>
+    </header>
+
+    <div id="lobby" class="panel">
+      <div class="lobby-row">
+        <label>
+          Nick
+          <input type="text" id="player-name" maxlength="16" placeholder="Twój nick">
+        </label>
+        <label>
+          Pokój
+          <input type="text" id="room-id" value="main" maxlength="20">
+        </label>
+        <button id="btn-join" class="btn primary">Dołącz</button>
+      </div>
+      <div id="lobby-status" class="hidden">
+        <h2>Pokój: <span id="room-display"></span></h2>
+        <ul id="player-list"></ul>
+        <div class="lobby-actions">
+          <button id="btn-ready" class="btn">Gotowy</button>
+          <button id="btn-start" class="btn primary hidden">Start wyścigu</button>
+          <button id="btn-reset" class="btn hidden">Nowy wyścig</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-area" class="hidden">
+      <canvas id="track-canvas" width="1000" height="700"></canvas>
+      <div id="hud">
+        <div id="race-info"></div>
+        <div id="lap-board"></div>
+      </div>
+    </div>
+
+    <div id="controls-help" class="panel">
+      <h3>Sterowanie (jeden przycisk na gracza — skręt w lewo)</h3>
+      <div class="control-grid">
+        <div class="control-item red"><kbd>A</kbd> Gracz 1 — Czerwony</div>
+        <div class="control-item blue"><kbd>S</kbd> Gracz 2 — Niebieski</div>
+        <div class="control-item green"><kbd>K</kbd> Gracz 3 — Zielony</div>
+        <div class="control-item yellow"><kbd>L</kbd> Gracz 4 — Żółty</div>
+      </div>
+      <p class="rules">
+        Gaz cały czas włączony. Trzymaj przycisk, żeby skręcić w lewo (jak w prawdziwym żużlu).
+        Jazda przeciwnie do ruchu wskazówek zegara. Wyjazd poza tor = spowolnienie.
+        Kolizje z innymi zawodnikami też spowalniają. Pierwszy na mecie po 4 okrążeniach wygrywa.
+      </p>
+    </div>
+
+    <div id="overlay" class="hidden">
+      <div id="overlay-content"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/track-render.js"></script>
+  <script src="/js/client.js"></script>
+</body>
+</html>
