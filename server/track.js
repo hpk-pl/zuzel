@@ -155,6 +155,24 @@ function shuffleArray(items) {
   return arr;
 }
 
+/** Promień skrętu zależny od położenia na torze (łuki vs proste) */
+function getSteeringRadius(x, y) {
+  const { t } = distanceToCenterline(x, y);
+  const straightLen = TRACK.straightHalf * 2;
+  const bendArc = Math.PI * TRACK.bendRadius;
+  const total = trackLength();
+
+  let d = ((t % 1) + 1) % 1;
+  d *= total;
+
+  if (d < straightLen) return TRACK.straightHalf * 2;
+  d -= straightLen;
+  if (d < bendArc) return TRACK.bendRadius;
+  d -= bendArc;
+  if (d < straightLen) return TRACK.straightHalf * 2;
+  return TRACK.bendRadius;
+}
+
 /** 4 stałe miejsca startowe w poprzek toru (góra → dół), losowo przypisane zawodnikom */
 function getStartPositions(riders) {
   const baseT = getFinishT();
@@ -185,4 +203,5 @@ module.exports = {
   bikeHitsBarrier,
   getStartPositions,
   getFinishT,
+  getSteeringRadius,
 };
