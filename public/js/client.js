@@ -1,4 +1,6 @@
-const SLOT_KEYS = { 0: 'KeyA', 1: 'KeyS', 2: 'KeyK', 3: 'KeyL' };
+const SLOT_KEYS = { 0: 'ShiftLeft', 1: 'KeyV', 2: 'ControlRight', 3: 'ShiftRight' };
+const SLOT_LABELS = ['L⇧', 'V', 'R Ctrl', 'R⇧'];
+const SPEED_LEVELS = [70, 80, 90, 100];
 
 const socket = io({ reconnection: true });
 const canvas = document.getElementById('track-canvas');
@@ -18,6 +20,54 @@ function setStartEnabled(enabled) {
   btn.title = enabled ? '' : 'Łączenie z serwerem…';
 }
 
+function getSpeedDialLevel(dial) {
+  return parseInt(dial.dataset.level, 10) || SPEED_LEVELS.length - 1;
+}
+
+function setSpeedDialLevel(dial, level, { emit = false } = {}) {
+  const idx = Math.max(0, Math.min(SPEED_LEVELS.length - 1, level));
+  dial.dataset.level = String(idx);
+  const label = dial.querySelector('.speed-dial-label');
+  if (label) label.textContent = `${SPEED_LEVELS[idx]}%`;
+  if (emit) {
+    const slot = parseInt(dial.dataset.slot, 10);
+    socket.emit('speed-limit', { slot, percent: SPEED_LEVELS[idx] });
+  }
+}
+
+function cycleSpeedDial(dial, delta, options = {}) {
+  const next = (getSpeedDialLevel(dial) + delta + SPEED_LEVELS.length) % SPEED_LEVELS.length;
+  setSpeedDialLevel(dial, next, options);
+}
+
+function bindSpeedDial(dial) {
+  dial.addEventListener('click', () => cycleSpeedDial(dial, 1, { emit: gameState?.state === 'racing' }));
+  dial.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    cycleSpeedDial(dial, e.deltaY > 0 ? 1 : -1, { emit: gameState?.state === 'racing' });
+  }, { passive: false });
+}
+
+document.querySelectorAll('.speed-dial').forEach(bindSpeedDial);
+
+function getSpeedPercentForSlot(slot) {
+  const dial = document.querySelector(`.speed-dial[data-slot="${slot}"]`);
+  if (!dial) return 100;
+  return SPEED_LEVELS[getSpeedDialLevel(dial)];
+}
+
+function syncSpeedDialsFromState(state) {
+  const sources = [...(state.players || []), ...(state.bikes || [])];
+  for (const item of sources) {
+    if (item.speedPercent == null) continue;
+    const level = SPEED_LEVELS.indexOf(item.speedPercent);
+    if (level === -1) continue;
+    document.querySelectorAll(`.speed-dial[data-slot="${item.slot}"]`).forEach((dial) => {
+      setSpeedDialLevel(dial, level);
+    });
+  }
+}
+
 function collectRiders() {
   const riders = [];
   document.querySelectorAll('.rider-row').forEach((row) => {
@@ -25,7 +75,7 @@ function collectRiders() {
     const name = row.querySelector('.rider-name').value.trim();
     const team = row.querySelector('.rider-team').value;
     if (!name) return;
-    riders.push({ slot, name, team });
+    riders.push({ slot, name, team, speedPercent: getSpeedPercentForSlot(slot) });
   });
   const teamA = riders.filter((r) => r.team === 'A').length;
   const teamB = riders.filter((r) => r.team === 'B').length;
@@ -79,6 +129,7 @@ $('overlay-content').addEventListener('click', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (gameState?.state !== 'racing') return;
+  if (e.repeat) return;
   for (const [slot, key] of Object.entries(SLOT_KEYS)) {
     if (e.code === key && !pressedSlots.has(slot)) {
       e.preventDefault();
@@ -91,6 +142,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
   for (const [slot, key] of Object.entries(SLOT_KEYS)) {
     if (e.code === key) {
+      e.preventDefault();
       pressedSlots.delete(slot);
       socket.emit('input', { slot: parseInt(slot, 10), turnLeft: false });
     }
@@ -118,6 +170,7 @@ socket.on('state', (state) => {
     }
   }
   gameState = state;
+  syncSpeedDialsFromState(state);
   updateUI(state);
 });
 
@@ -125,6 +178,7 @@ function updateUI(state) {
   const inMatch = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
   $('setup').classList.toggle('hidden', inMatch);
   $('game-area').classList.toggle('hidden', !inMatch);
+  if (!inMatch) lastSpeedHudKey = '';
 
   if (!inMatch) setStartEnabled(socketConnected);
 
@@ -193,6 +247,8 @@ function updateOverlay(state) {
   overlay.classList.add('hidden');
 }
 
+let lastSpeedHudKey = '';
+
 function updateHud(state) {
   $('race-info').textContent = state.heatNumber
     ? `Bieg ${state.heatNumber}/${state.totalHeats} · ${state.totalLaps} okr.`
@@ -203,8 +259,35 @@ function updateHud(state) {
     if (b.fallen) st = 'UPADEK';
     else if (b.finished) st = 'META';
     else st = `Okr. ${b.lap}/${state.totalLaps}`;
-    return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st}</div>`;
+    const pct = b.speedPercent ?? 100;
+    return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st} · ${pct}%</div>`;
   }).join('');
+
+  const hud = $('speed-dials-hud');
+  const hudKey = (state.bikes || []).map((b) => `${b.slot}:${b.name}:${b.color}`).join('|');
+  if (hud && hudKey !== lastSpeedHudKey) {
+    lastSpeedHudKey = hudKey;
+    hud.innerHTML = (state.bikes || []).map((b) => {
+      const level = SPEED_LEVELS.indexOf(b.speedPercent ?? 100);
+      const dialLevel = level === -1 ? SPEED_LEVELS.length - 1 : level;
+      return `
+        <div class="speed-dial-hud-row" style="border-left:3px solid ${b.color}">
+          <span>${SLOT_LABELS[b.slot]} ${escapeHtml(b.name)}</span>
+          <div class="speed-dial" data-slot="${b.slot}" data-level="${dialLevel}" title="Limit prędkości">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">${b.speedPercent ?? 100}%</span>
+          </div>
+        </div>`;
+    }).join('');
+    hud.querySelectorAll('.speed-dial').forEach(bindSpeedDial);
+  } else if (hud) {
+    for (const b of state.bikes || []) {
+      const dial = hud.querySelector(`.speed-dial[data-slot="${b.slot}"]`);
+      if (!dial) continue;
+      const level = SPEED_LEVELS.indexOf(b.speedPercent ?? 100);
+      if (level !== -1) setSpeedDialLevel(dial, level);
+    }
+  }
 
   $('score-board').innerHTML = state.heatNumber
     ? `<div>${escapeHtml(state.teamAName)} ${state.teamScores?.A ?? 0} : ${state.teamScores?.B ?? 0} ${escapeHtml(state.teamBName)}</div>`

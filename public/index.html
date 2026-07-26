@@ -15,28 +15,44 @@
 
     <div id="setup" class="panel">
       <h2>Zawodnicy</h2>
-      <p class="setup-hint">Wpisz nicki zawodników (puste pole = brak zawodnika). Max 2 na drużynę.</p>
+      <p class="setup-hint">Wpisz nicki zawodników (puste pole = brak zawodnika). Max 2 na drużynę. Kliknij pokrętło, aby ustawić limit prędkości.</p>
 
       <div class="riders-grid" id="riders-grid">
         <div class="rider-row" data-slot="0">
-          <span class="rider-key red"><kbd>A</kbd></span>
+          <span class="rider-key red"><kbd>L⇧</kbd></span>
           <input type="text" class="rider-name" placeholder="Zawodnik 1 (opcjonalnie)" maxlength="16">
           <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+          <div class="speed-dial" data-slot="0" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
         </div>
         <div class="rider-row" data-slot="1">
-          <span class="rider-key blue"><kbd>S</kbd></span>
+          <span class="rider-key blue"><kbd>V</kbd></span>
           <input type="text" class="rider-name" placeholder="Zawodnik 2 (opcjonalnie)" maxlength="16">
           <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+          <div class="speed-dial" data-slot="1" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
         </div>
         <div class="rider-row" data-slot="2">
-          <span class="rider-key green"><kbd>K</kbd></span>
+          <span class="rider-key green"><kbd>R Ctrl</kbd></span>
           <input type="text" class="rider-name" placeholder="Zawodnik 3 (opcjonalnie)" maxlength="16">
           <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+          <div class="speed-dial" data-slot="2" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
         </div>
         <div class="rider-row" data-slot="3">
-          <span class="rider-key yellow"><kbd>L</kbd></span>
+          <span class="rider-key yellow"><kbd>R⇧</kbd></span>
           <input type="text" class="rider-name" placeholder="Zawodnik 4 (opcjonalnie)" maxlength="16">
           <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+          <div class="speed-dial" data-slot="3" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
         </div>
       </div>
 
@@ -58,6 +74,7 @@
       <div id="hud">
         <div id="race-info"></div>
         <div id="lap-board"></div>
+        <div id="speed-dials-hud" class="speed-dials-hud"></div>
         <div id="score-board"></div>
       </div>
     </div>
@@ -65,14 +82,14 @@
     <div id="controls-help" class="panel">
       <h3>Sterowanie — skręt w lewo</h3>
       <div class="control-grid">
-        <div class="control-item red"><kbd>A</kbd> Slot 1 — Czerwony</div>
-        <div class="control-item blue"><kbd>S</kbd> Slot 2 — Niebieski</div>
-        <div class="control-item green"><kbd>K</kbd> Slot 3 — Zielony</div>
-        <div class="control-item yellow"><kbd>L</kbd> Slot 4 — Żółty</div>
+        <div class="control-item red"><kbd>L⇧</kbd> Slot 1 — Czerwony</div>
+        <div class="control-item blue"><kbd>V</kbd> Slot 2 — Niebieski</div>
+        <div class="control-item green"><kbd>R Ctrl</kbd> Slot 3 — Zielony</div>
+        <div class="control-item yellow"><kbd>R⇧</kbd> Slot 4 — Żółty</div>
       </div>
       <p class="rules">
         Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja: 3-2-1-0 (upadek = u = 0 pkt).
-        Start na dolnej prostej, jazda w prawo, skręt w lewo.
+        Pokrętło prędkości: 70% · 80% · 90% · 100% maksymalnej prędkości (kliknij, aby przełączyć).
       </p>
     </div>
 
@@ -82,7 +99,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/track-render.js?v=3"></script>
-  <script src="/js/client.js?v=3"></script>
+  <script src="/js/track-render.js?v=4"></script>
+  <script src="/js/client.js?v=4"></script>
 </body>
 </html>

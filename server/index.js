@@ -57,6 +57,10 @@ io.on('connection', (socket) => {
     room.setInput(slot, turnLeft);
   });
 
+  socket.on('speed-limit', ({ slot, percent }) => {
+    if (room.setSpeedLimit(slot, percent)) emitState(room);
+  });
+
   socket.on('reset', () => {
     if (!denyUnlessHost(socket, room)) return;
     room.reset();
