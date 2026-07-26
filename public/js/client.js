@@ -1,5 +1,5 @@
-const SLOT_KEYS = { 0: 'ShiftLeft', 1: 'KeyV', 2: 'ControlRight', 3: 'ShiftRight' };
-const SLOT_LABELS = ['L⇧', 'V', 'R Ctrl', 'R⇧'];
+const SLOT_KEYS = { 0: 'ControlLeft', 1: 'KeyV', 2: 'ControlRight', 3: 'Numpad0' };
+const SLOT_LABELS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
 const socket = io({ reconnection: true });
@@ -124,7 +124,7 @@ socket.on('connect_error', () => {
 
 $('overlay-content').addEventListener('click', (e) => {
   if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
-  if (e.target.id === 'overlay-reset') socket.emit('reset');
+  if (e.target.id === 'overlay-menu' || e.target.id === 'overlay-reset') socket.emit('reset');
 });
 
 document.addEventListener('keydown', (e) => {
@@ -156,6 +156,10 @@ socket.on('error', ({ message }) => {
 
 socket.on('state', (state) => {
   if (state.state === 'countdown' && state.countdown === 3) trails.clear();
+  if (state.state === 'lobby') {
+    pressedSlots.clear();
+    trails.clear();
+  }
   if (state.state === 'racing') {
     for (const bike of state.bikes || []) {
       if (!trails.has(bike.slot)) trails.set(bike.slot, []);
@@ -221,7 +225,7 @@ function updateOverlay(state) {
         ${escapeHtml(state.teamAName)}: ${state.teamScores.A} ·
         ${escapeHtml(state.teamBName)}: ${state.teamScores.B}
       </div>
-      <div class="overlay-actions">${nextBtn}</div>`;
+      <div class="overlay-actions">${nextBtn}<button id="overlay-menu" class="btn overlay-btn">Menu główne</button></div>`;
     return;
   }
 
@@ -239,7 +243,7 @@ function updateOverlay(state) {
       <div class="final-score">${s.teamA.name} ${s.teamA.points} : ${s.teamB.points} ${s.teamB.name}</div>
       <div class="heat-results">${players}</div>
       <div class="overlay-actions">
-        <button id="overlay-reset" class="btn primary overlay-btn">Nowy mecz</button>
+        <button id="overlay-menu" class="btn primary overlay-btn">Menu główne</button>
       </div>`;
     return;
   }

@@ -10,7 +10,7 @@ const {
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
-const SLOT_KEYS = ['L⇧', 'V', 'R Ctrl', 'R⇧'];
+const SLOT_KEYS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
 const BIKE = {
