@@ -10,7 +10,8 @@ const {
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
-const SLOT_KEYS = ['A', 'S', 'K', 'L'];
+const SLOT_KEYS = ['L⇧', 'V', 'R Ctrl', 'R⇧'];
+const SPEED_LEVELS = [70, 80, 90, 100];
 
 const BIKE = {
   length: 22,
@@ -19,6 +20,16 @@ const BIKE = {
   turnRate: 0.055,
   collisionSlowdown: 0.6,
 };
+
+function normalizeSpeedPercent(percent) {
+  const allowed = [70, 80, 90, 100];
+  const n = Number(percent);
+  return allowed.includes(n) ? n : 100;
+}
+
+function maxSpeedFor(speedPercent) {
+  return BIKE.maxSpeed * (normalizeSpeedPercent(speedPercent) / 100);
+}
 
 function createBike(x, y, angle, color, name, slot) {
   return {
@@ -76,7 +87,7 @@ class GameRoom {
     this.id = roomId;
     this.hostId = null;
     this.clients = new Set();
-    /** @type {Map<number, {slot, name, team, color, input}>} */
+    /** @type {Map<number, {slot, name, team, color, speedPercent, input}>} */
     this.riders = new Map();
     this.bikes = [];
     this.state = 'lobby';
@@ -131,11 +142,13 @@ class GameRoom {
     this.riders.clear();
     for (const r of riders) {
       const team = r.team === 'B' ? 'B' : 'A';
+      const speedPercent = normalizeSpeedPercent(r.speedPercent);
       this.riders.set(r.slot, {
         slot: r.slot,
         name: r.name.slice(0, 16) || `Zawodnik ${r.slot + 1}`,
         team,
         color: PLAYER_COLORS[r.slot],
+        speedPercent,
         input: { turnLeft: false },
       });
     }
@@ -148,6 +161,18 @@ class GameRoom {
   setInput(slot, turnLeft) {
     const rider = this.riders.get(slot);
     if (rider && this.state === 'racing') rider.input.turnLeft = !!turnLeft;
+  }
+
+  setSpeedLimit(slot, percent) {
+    const rider = this.riders.get(slot);
+    if (!rider) return false;
+    rider.speedPercent = normalizeSpeedPercent(percent);
+    const bike = this.bikes.find((b) => b.slot === slot);
+    if (bike && !bike.fallen && !bike.finished) {
+      const cap = maxSpeedFor(rider.speedPercent);
+      if (bike.speed > cap) bike.speed = cap;
+    }
+    return true;
   }
 
   getRiderList() {
@@ -203,7 +228,8 @@ class GameRoom {
 
       const rider = this.riders.get(bike.slot);
       bike.turning = rider?.input.turnLeft || false;
-      bike.speed = Math.min(BIKE.maxSpeed, bike.speed + BIKE.acceleration);
+      const speedCap = maxSpeedFor(rider?.speedPercent ?? 100);
+      bike.speed = Math.min(speedCap, bike.speed + BIKE.acceleration);
       if (bike.turning) bike.angle -= BIKE.turnRate;
 
       bike.x += Math.cos(bike.angle) * bike.speed;
@@ -311,6 +337,7 @@ class GameRoom {
         team: p.team,
         color: p.color,
         key: SLOT_KEYS[p.slot],
+        speedPercent: p.speedPercent,
         totalPoints: this.scores[p.slot] || 0,
       })),
       bikes: this.bikes.map((b) => ({
@@ -318,6 +345,7 @@ class GameRoom {
         y: Math.round(b.y * 10) / 10,
         angle: Math.round(b.angle * 1000) / 1000,
         speed: Math.round(b.speed * 10) / 10,
+        speedPercent: this.riders.get(b.slot)?.speedPercent ?? 100,
         color: b.color,
         name: b.name,
         slot: b.slot,
