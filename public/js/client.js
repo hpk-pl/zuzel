@@ -1,4 +1,7 @@
 const SLOT_KEYS = { 0: 'ControlLeft', 1: 'KeyV', 2: 'ControlRight', 3: 'Numpad0' };
+const CODE_TO_SLOT = Object.fromEntries(
+  Object.entries(SLOT_KEYS).map(([slot, code]) => [code, Number(slot)])
+);
 const SLOT_LABELS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
@@ -9,7 +12,7 @@ const ctx = canvas.getContext('2d');
 let gameState = null;
 let socketConnected = false;
 const trails = new Map();
-const pressedSlots = new Set();
+const pressedCodes = new Set();
 
 const $ = (id) => document.getElementById(id);
 
@@ -127,26 +130,40 @@ $('overlay-content').addEventListener('click', (e) => {
   if (e.target.id === 'overlay-menu' || e.target.id === 'overlay-reset') socket.emit('reset');
 });
 
-document.addEventListener('keydown', (e) => {
-  if (gameState?.state !== 'racing') return;
-  if (e.repeat) return;
-  for (const [slot, key] of Object.entries(SLOT_KEYS)) {
-    if (e.code === key && !pressedSlots.has(slot)) {
-      e.preventDefault();
-      pressedSlots.add(slot);
-      socket.emit('input', { slot: parseInt(slot, 10), turnLeft: true });
-    }
+function releaseAllInputs() {
+  for (const code of pressedCodes) {
+    const slot = CODE_TO_SLOT[code];
+    if (slot != null) socket.emit('input', { slot, turnLeft: false });
   }
-});
+  pressedCodes.clear();
+}
 
-document.addEventListener('keyup', (e) => {
-  for (const [slot, key] of Object.entries(SLOT_KEYS)) {
-    if (e.code === key) {
-      e.preventDefault();
-      pressedSlots.delete(slot);
-      socket.emit('input', { slot: parseInt(slot, 10), turnLeft: false });
-    }
-  }
+function handleKeyDown(e) {
+  const slot = CODE_TO_SLOT[e.code];
+  if (slot == null) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (gameState?.state !== 'racing') return;
+  if (pressedCodes.has(e.code)) return;
+  pressedCodes.add(e.code);
+  socket.emit('input', { slot, turnLeft: true });
+}
+
+function handleKeyUp(e) {
+  const slot = CODE_TO_SLOT[e.code];
+  if (slot == null) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (!pressedCodes.has(e.code)) return;
+  pressedCodes.delete(e.code);
+  socket.emit('input', { slot, turnLeft: false });
+}
+
+window.addEventListener('keydown', handleKeyDown, true);
+window.addEventListener('keyup', handleKeyUp, true);
+window.addEventListener('blur', releaseAllInputs);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) releaseAllInputs();
 });
 
 socket.on('error', ({ message }) => {
@@ -157,8 +174,10 @@ socket.on('error', ({ message }) => {
 socket.on('state', (state) => {
   if (state.state === 'countdown' && state.countdown === 3) trails.clear();
   if (state.state === 'lobby') {
-    pressedSlots.clear();
+    releaseAllInputs();
     trails.clear();
+  } else if (state.state !== 'racing') {
+    releaseAllInputs();
   }
   if (state.state === 'racing') {
     for (const bike of state.bikes || []) {

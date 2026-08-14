@@ -205,9 +205,18 @@ input {
   pointer-events: none;
 }
 
-#hud > #speed-dials-hud {
-  flex: 0 0 auto;
-  max-width: 220px;
+#speed-dials-hud {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  pointer-events: auto;
 }
 
 #race-info, #lap-board {
@@ -348,9 +357,6 @@ kbd {
 }
 
 .speed-dials-hud {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
   pointer-events: auto;
 }
 
@@ -358,10 +364,13 @@ kbd {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.55);
-  padding: 0.35rem 0.5rem;
+  background: rgba(0, 0, 0, 0.72);
+  padding: 0.4rem 0.65rem;
   border-radius: 8px;
   font-size: 0.8rem;
+  flex: 1 1 200px;
+  max-width: 240px;
+  justify-content: space-between;
 }
 
 .speed-dials-hud .speed-dial-face {
