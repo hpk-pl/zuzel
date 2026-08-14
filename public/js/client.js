@@ -24,7 +24,8 @@ function setStartEnabled(enabled) {
 }
 
 function getSpeedDialLevel(dial) {
-  return parseInt(dial.dataset.level, 10) || SPEED_LEVELS.length - 1;
+  const level = parseInt(dial.dataset.level, 10);
+  return Number.isFinite(level) ? level : SPEED_LEVELS.length - 1;
 }
 
 function setSpeedDialLevel(dial, level, { emit = false } = {}) {
@@ -43,10 +44,18 @@ function cycleSpeedDial(dial, delta, options = {}) {
   setSpeedDialLevel(dial, next, options);
 }
 
+const boundSpeedDials = new WeakSet();
+
 function bindSpeedDial(dial) {
-  dial.addEventListener('click', () => cycleSpeedDial(dial, 1, { emit: gameState?.state === 'racing' }));
+  if (boundSpeedDials.has(dial)) return;
+  boundSpeedDials.add(dial);
+  dial.addEventListener('click', (e) => {
+    e.stopPropagation();
+    cycleSpeedDial(dial, 1, { emit: gameState?.state === 'racing' });
+  });
   dial.addEventListener('wheel', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     cycleSpeedDial(dial, e.deltaY > 0 ? 1 : -1, { emit: gameState?.state === 'racing' });
   }, { passive: false });
 }
