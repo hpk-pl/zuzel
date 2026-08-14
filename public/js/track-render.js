@@ -72,10 +72,13 @@ function drawTrails(ctx, bikes, trails) {
     ctx.lineJoin = 'round';
     ctx.globalAlpha = 0.9;
     ctx.beginPath();
+    const step = points.length > 600 ? 3 : 1;
     ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
+    for (let i = step; i < points.length; i += step) {
       ctx.lineTo(points[i].x, points[i].y);
     }
+    const last = points[points.length - 1];
+    ctx.lineTo(last.x, last.y);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }

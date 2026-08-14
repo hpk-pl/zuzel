@@ -45,6 +45,37 @@ function bikesCollide(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y) < 16;
 }
 
+/** Ruch z pod-krokami — wykrywa bandę nawet przy dużej prędkości / lagu serwera */
+function advanceBike(bike) {
+  const dist = bike.speed;
+  if (dist <= 0) return true;
+
+  const steps = Math.max(1, Math.ceil(dist / 2.5));
+  const step = dist / steps;
+  const dx = Math.cos(bike.angle) * step;
+  const dy = Math.sin(bike.angle) * step;
+
+  for (let i = 0; i < steps; i++) {
+    bike.x += dx;
+    bike.y += dy;
+    if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
+      bike.x -= dx;
+      bike.y -= dy;
+      return false;
+    }
+  }
+  return true;
+}
+
+function pushBikeAway(bike, dx, dy, dist) {
+  bike.x -= (dx / dist) * 2;
+  bike.y -= (dy / dist) * 2;
+  if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
+    bike.x += (dx / dist) * 2;
+    bike.y += (dy / dist) * 2;
+  }
+}
+
 function updateLap(bike, prevT, newT) {
   if (bike.finished || bike.fallen) return;
   const finishT = getFinishT();
@@ -232,10 +263,7 @@ class GameRoom {
       bike.speed = Math.min(speedCap, bike.speed + BIKE.acceleration);
       if (bike.turning) bike.angle -= BIKE.turnRate;
 
-      bike.x += Math.cos(bike.angle) * bike.speed;
-      bike.y += Math.sin(bike.angle) * bike.speed;
-
-      if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
+      if (!advanceBike(bike)) {
         bike.fallen = true;
         bike.fallTime = Date.now();
         bike.speed = 0;
@@ -257,10 +285,8 @@ class GameRoom {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.hypot(dx, dy) || 1;
-        a.x -= (dx / dist) * 2;
-        a.y -= (dy / dist) * 2;
-        b.x += (dx / dist) * 2;
-        b.y += (dy / dist) * 2;
+        pushBikeAway(a, dx, dy, dist);
+        pushBikeAway(b, -dx, -dy, dist);
       }
     }
 

@@ -180,6 +180,8 @@ socket.on('error', ({ message }) => {
   alert(message);
 });
 
+let lastHudUpdate = 0;
+
 socket.on('state', (state) => {
   if (state.state === 'countdown' && state.countdown === 3) trails.clear();
   if (state.state === 'lobby') {
@@ -195,14 +197,27 @@ socket.on('state', (state) => {
       if (pts.length === 0) pts.push({ x: bike.x, y: bike.y });
       if (bike.fallen) continue;
       const last = pts[pts.length - 1];
-      if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 1.5) {
+      if (!last || Math.hypot(bike.x - last.x, bike.y - last.y) > 2.5) {
         pts.push({ x: bike.x, y: bike.y });
-        if (pts.length > 3000) pts.shift();
+        if (pts.length > 1200) pts.shift();
       }
     }
   }
+
+  const wasRacing = gameState?.state === 'racing';
   gameState = state;
   syncSpeedDialsFromState(state);
+
+  if (state.state === 'racing' && wasRacing) {
+    const now = performance.now();
+    if (now - lastHudUpdate > 150) {
+      lastHudUpdate = now;
+      updateHudRacing(state);
+    }
+    return;
+  }
+
+  lastHudUpdate = 0;
   updateUI(state);
 });
 
@@ -280,6 +295,17 @@ function updateOverlay(state) {
 }
 
 let lastSpeedHudKey = '';
+
+function updateHudRacing(state) {
+  $('lap-board').innerHTML = (state.bikes || []).map((b) => {
+    let st;
+    if (b.fallen) st = 'UPADEK';
+    else if (b.finished) st = 'META';
+    else st = `Okr. ${b.lap}/${state.totalLaps}`;
+    const pct = b.speedPercent ?? 100;
+    return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st} · ${pct}%</div>`;
+  }).join('');
+}
 
 function updateHud(state) {
   $('race-info').textContent = state.heatNumber
