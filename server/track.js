@@ -100,27 +100,30 @@ function distToArc(px, py, cx, cy, radius, angleStart, angleEnd) {
   );
 }
 
-/** Dokładna odległość od linii środkowej toru */
-function distanceToCenterline(x, y) {
+/** Szybka odległość od linii środkowej (bez szukania parametru t) */
+function distanceFromCenterline(x, y) {
   const { centerX, centerY, straightHalf, bendRadius } = TRACK;
   const leftX = centerX - straightHalf;
   const rightX = centerX + straightHalf;
   const topY = centerY - bendRadius;
   const botY = centerY + bendRadius;
 
-  const candidates = [
+  return Math.min(
     distToSegment(x, y, leftX, botY, rightX, botY),
     distToSegment(x, y, rightX, topY, leftX, topY),
     distToArc(x, y, rightX, centerY, bendRadius, -Math.PI / 2, Math.PI / 2),
     distToArc(x, y, leftX, centerY, bendRadius, Math.PI / 2, (3 * Math.PI) / 2),
-  ];
+  );
+}
 
-  const distance = Math.min(...candidates);
+/** Odległość od linii środkowej + parametr t (do liczenia okrążeń) */
+function distanceToCenterline(x, y) {
+  const distance = distanceFromCenterline(x, y);
 
   let bestT = 0;
   let best = Infinity;
-  for (let i = 0; i <= 400; i++) {
-    const t = i / 400;
+  for (let i = 0; i <= 120; i++) {
+    const t = i / 120;
     const p = centerlinePoint(t);
     const d = (x - p.x) ** 2 + (y - p.y) ** 2;
     if (d < best) { best = d; bestT = t; }
@@ -130,8 +133,7 @@ function distanceToCenterline(x, y) {
 }
 
 function hasHitBarrier(x, y) {
-  const { distance } = distanceToCenterline(x, y);
-  return distance > TRACK.width / 2 - BARRIER_MARGIN;
+  return distanceFromCenterline(x, y) > TRACK.width / 2 - BARRIER_MARGIN;
 }
 
 /** Sprawdza środek i przód motocykla */

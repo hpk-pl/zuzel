@@ -7,6 +7,7 @@ const { GameManager } = require('./game');
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
 const COUNTDOWN_TICK = 60;
+const RACING_EMIT_EVERY = 2; // fizyka 60 Hz, stan do klienta 30 Hz
 
 const app = express();
 const server = http.createServer(app);
@@ -79,6 +80,7 @@ io.on('connection', (socket) => {
 });
 
 let countdownCounter = 0;
+let racingEmitCounter = 0;
 setInterval(() => {
   for (const room of gameManager.rooms.values()) {
     if (room.state === 'countdown') {
@@ -90,7 +92,12 @@ setInterval(() => {
       }
     } else if (room.state === 'racing') {
       room.tickPhysics();
-      emitState(room);
+      racingEmitCounter += 1;
+      const heatEnded = room.state !== 'racing';
+      if (heatEnded || racingEmitCounter >= RACING_EMIT_EVERY) {
+        racingEmitCounter = 0;
+        emitState(room);
+      }
     }
   }
 }, 1000 / TICK_RATE);
