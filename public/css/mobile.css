@@ -76,12 +76,13 @@
 }
 
 .color-option {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.2rem;
+  height: 2.2rem;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .color-option.selected {

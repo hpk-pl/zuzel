@@ -7,6 +7,15 @@ const {
   getFinishLineSegment,
 } = require('./track-geometry');
 
+function shuffleArray(items) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 /** Fabryka silnika toru — osobne owale zewnętrzny / wewnętrzny + środek trasy */
 function createTrackEngine(geometry) {
   const geo = normalizeGeometry(geometry);
@@ -93,12 +102,14 @@ function createTrackEngine(geometry) {
     const dy = fl.y2 - fl.y1;
     const lineLen = Math.hypot(dx, dy) || 1;
     const sortedRiders = [...riders].sort((a, b) => a.slot - b.slot);
+    const laneIndices = shuffleArray([...Array(START_LANES).keys()]).slice(0, sortedRiders.length);
     const bikeClearance = 14;
     const endMargin = geo.barrierMargin + bikeClearance;
     const usable = Math.max(24, lineLen - endMargin * 2);
 
     return sortedRiders.map((rider, i) => {
-      const laneFrac = (i + 0.5) / sortedRiders.length;
+      const lane = laneIndices[i];
+      const laneFrac = (lane + 0.5) / START_LANES;
       const along = endMargin + usable * laneFrac;
       const t = along / lineLen;
       let x = fl.x1 + dx * t;
@@ -120,7 +131,7 @@ function createTrackEngine(geometry) {
 
       return {
         slot: rider.slot,
-        lane: i,
+        lane,
         x,
         y,
         angle: p.angle,
