@@ -42,6 +42,21 @@
         </section>
 
         <section class="builder-section">
+          <h3>Edycja</h3>
+          <div class="edit-mode-group">
+            <label class="edit-mode-option"><input type="radio" name="edit-mode" value="outer" checked> Banda zewnętrzna</label>
+            <label class="edit-mode-option"><input type="radio" name="edit-mode" value="inner"> Banda wewnętrzna</label>
+            <label class="edit-mode-option"><input type="radio" name="edit-mode" value="centerline"> Środek trasy</label>
+            <label class="edit-mode-option"><input type="radio" name="edit-mode" value="finish"> Linia meta</label>
+          </div>
+          <p class="builder-file-hint">Środek trasy steruje fizyką (okrążenia, start). Możesz go ukryć w warstwach lub ustawić automatycznie.</p>
+          <div class="builder-actions">
+            <button type="button" class="btn" id="btn-auto-centerline">Auto środek</button>
+            <button type="button" class="btn" id="btn-reset-finish">Reset mety</button>
+          </div>
+        </section>
+
+        <section class="builder-section">
           <h3>Warstwy</h3>
           <div class="layer-toggles">
             <label><input type="checkbox" id="show-bg" checked> Tło</label>
@@ -59,13 +74,10 @@
         </section>
 
         <section class="builder-section">
-          <h3>Parametry</h3>
+          <h3>Parametry gry</h3>
           <label>Okrażenia <input type="number" id="param-laps" min="1" max="20" value="4"></label>
           <label>Margines bandy <input type="number" id="param-margin" min="0" max="30" value="6"></label>
           <label>Odstęp startowy <input type="number" id="param-spacing" min="10" max="40" value="23"></label>
-          <div class="builder-actions">
-            <button type="button" class="btn" id="btn-reset-finish">Reset mety</button>
-          </div>
         </section>
 
         <section class="builder-section">
@@ -84,14 +96,15 @@
         <div class="builder-canvas-wrap">
           <canvas id="builder-canvas" width="1000" height="700"></canvas>
           <div class="builder-canvas-hint" id="canvas-hint">
-            Przeciągaj uchwyty: środek · boki prostej · góra/dół łuku · szerokość · linia mety
+            Wybierz tryb edycji w panelu po lewej
           </div>
         </div>
       </main>
     </div>
   </div>
 
-  <script src="/js/track-render.js?v=13"></script>
-  <script src="/js/track-builder.js?v=13"></script>
+  <script src="/js/track-geometry.js?v=14"></script>
+  <script src="/js/track-render.js?v=14"></script>
+  <script src="/js/track-builder.js?v=14"></script>
 </body>
 </html>
