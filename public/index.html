@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Żużel — gra online</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css">
+  <link rel="stylesheet" href="/css/mobile.css?v=23">
 </head>
 <body class="mobile-app">
   <div id="app">
@@ -64,17 +64,21 @@
 
     <!-- Gra -->
     <section id="screen-game" class="mobile-screen hidden">
-      <div class="game-canvas-wrap">
-        <canvas id="track-canvas" width="1000" height="700"></canvas>
-      </div>
-      <div id="hud-mobile" class="hud-mobile">
-        <div id="race-info-mobile"></div>
-        <div id="my-status-mobile"></div>
-        <div id="score-mobile"></div>
-      </div>
-      <div class="touch-controls">
-        <button type="button" class="speed-btn" id="btn-speed" aria-label="Zmień limit prędkości">100%</button>
-        <button type="button" class="turn-btn" id="btn-turn">SKRĘĆ</button>
+      <div class="game-layout">
+        <div class="game-play-column">
+          <div class="game-canvas-wrap">
+            <canvas id="track-canvas" width="1000" height="700"></canvas>
+          </div>
+          <div id="hud-mobile" class="hud-mobile">
+            <div id="race-info-mobile"></div>
+            <div id="my-status-mobile"></div>
+            <div id="score-mobile"></div>
+          </div>
+        </div>
+        <div class="touch-controls">
+          <button type="button" class="speed-btn" id="btn-speed" aria-label="Zmień limit prędkości">100%</button>
+          <button type="button" class="turn-btn" id="btn-turn">SKRĘĆ</button>
+        </div>
       </div>
     </section>
 
