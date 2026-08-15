@@ -13,6 +13,8 @@
   let appliedTrackId = null;
   let lastHudUpdate = 0;
   let playerSessionId = null;
+  let trackWarmupId = null;
+  let trackWarmupPromise = null;
   const trails = new Map();
 
   const SESSION_KEY = 'zuzel_player_session';
@@ -128,7 +130,30 @@
       ...track,
       visual: { ...track.visual, showVectorLayer: false },
     });
-    if (track.image) TrackRender.preloadTrackImage(track);
+  }
+
+  /** Ładuje obraz toru i buduje warstwę tła zanim ruszy bieg. */
+  function ensureTrackReady(trackId) {
+    if (!trackId) return Promise.resolve();
+    if (trackWarmupId === trackId && trackWarmupPromise) return trackWarmupPromise;
+
+    const track = window.TRACK_BY_ID?.[trackId];
+    if (!track) return Promise.resolve();
+
+    applyTrackVisual(trackId);
+    trackWarmupId = trackId;
+    trackWarmupPromise = Promise.resolve()
+      .then(() => (track.image && window.TrackRender?.preloadTrackImage
+        ? TrackRender.preloadTrackImage(track)
+        : null))
+      .then(() => {
+        if (appliedTrackId === trackId && window.TrackRender?.drawTrack) {
+          TrackRender.drawTrack(ctx, canvas.width, canvas.height);
+        }
+      })
+      .catch(() => {});
+
+    return trackWarmupPromise;
   }
 
   function updateLobby(state) {
@@ -157,8 +182,12 @@
 
     if (state.state === 'countdown' && state.countdown > 0) {
       overlay.classList.remove('hidden');
+      const loadingHint = state.heatNumber === 1 && state.countdown >= 4
+        ? '<div class="setup-hint">Ładowanie toru…</div>'
+        : '';
       content.innerHTML = `
         <div>Bieg ${state.heatNumber} / ${state.totalHeats}</div>
+        ${loadingHint}
         <div class="countdown">${state.countdown}</div>`;
       return;
     }
@@ -227,7 +256,7 @@
     gameState = state;
     mySlot = state.mySlot;
 
-    if (state.trackId) applyTrackVisual(state.trackId);
+    if (state.trackId) ensureTrackReady(state.trackId);
 
     const inMatch = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
 
@@ -240,6 +269,7 @@
     }
 
     if (inMatch) {
+      if (state.trackId) ensureTrackReady(state.trackId);
       showScreen('screen-game');
       updateGameHud(state, state.state !== 'racing');
       updateOverlay(state);
@@ -383,7 +413,9 @@
   });
 
   socket.on('state', (state) => {
-    if (state.state === 'countdown' && state.countdown === 3) trails.clear();
+    const enteringCountdown = state.state === 'countdown'
+      && gameState?.state !== 'countdown';
+    if (enteringCountdown) trails.clear();
     if (state.state === 'racing') {
       for (const bike of state.bikes || []) {
         if (!trails.has(bike.slot)) trails.set(bike.slot, []);
@@ -411,6 +443,6 @@
 
   loadTrackCatalog().then(() => {
     const trackId = window.getDefaultTrackId?.() || 'classic';
-    applyTrackVisual(trackId);
+    ensureTrackReady(trackId);
   }).catch(() => {});
 })();
