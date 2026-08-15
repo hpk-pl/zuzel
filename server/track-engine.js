@@ -7,15 +7,6 @@ const {
   getFinishLineSegment,
 } = require('./track-geometry');
 
-function shuffleArray(items) {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
 /** Fabryka silnika toru — osobne owale zewnętrzny / wewnętrzny + środek trasy */
 function createTrackEngine(geometry) {
   const geo = normalizeGeometry(geometry);
@@ -84,6 +75,16 @@ function createTrackEngine(geometry) {
     return hasHitBarrier(frontX, frontY);
   }
 
+  function isValidStartPose(x, y, angle) {
+    if (bikeHitsBarrier(x, y, angle)) return false;
+    const probe = 0.2;
+    return !bikeHitsBarrier(
+      x + Math.cos(angle) * probe,
+      y + Math.sin(angle) * probe,
+      angle,
+    );
+  }
+
   function getStartPositions(riders) {
     const baseT = getFinishT();
     const p = centerlinePoint(baseT);
@@ -91,32 +92,35 @@ function createTrackEngine(geometry) {
     const dx = fl.x2 - fl.x1;
     const dy = fl.y2 - fl.y1;
     const lineLen = Math.hypot(dx, dy) || 1;
-    const laneIndices = shuffleArray([...Array(START_LANES).keys()]).slice(0, riders.length);
+    const sortedRiders = [...riders].sort((a, b) => a.slot - b.slot);
     const bikeClearance = 14;
     const endMargin = geo.barrierMargin + bikeClearance;
     const usable = Math.max(24, lineLen - endMargin * 2);
 
-    return riders.map((rider, i) => {
-      const lane = laneIndices[i];
-      const laneFrac = (lane + 0.5) / START_LANES;
+    return sortedRiders.map((rider, i) => {
+      const laneFrac = (i + 0.5) / sortedRiders.length;
       const along = endMargin + usable * laneFrac;
       const t = along / lineLen;
       let x = fl.x1 + dx * t;
       let y = fl.y1 + dy * t;
 
-      if (hasHitBarrier(x, y)) {
-        const steps = 12;
-        for (let s = 1; s <= steps; s++) {
-          const tt = t + (0.5 - t) * (s / steps);
+      if (!isValidStartPose(x, y, p.angle)) {
+        const steps = 24;
+        for (let s = 0; s <= steps; s += 1) {
+          const tt = s / steps;
           const nx = fl.x1 + dx * tt;
           const ny = fl.y1 + dy * tt;
-          if (!hasHitBarrier(nx, ny)) { x = nx; y = ny; break; }
+          if (isValidStartPose(nx, ny, p.angle)) {
+            x = nx;
+            y = ny;
+            break;
+          }
         }
       }
 
       return {
         slot: rider.slot,
-        lane,
+        lane: i,
         x,
         y,
         angle: p.angle,

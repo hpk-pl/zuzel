@@ -9,6 +9,7 @@
   let joinCode = null;
   let gameState = null;
   let speedLevel = 3;
+  let sentRacingSpeedLimit = false;
   const trails = new Map();
 
   const socket = io({ reconnection: true });
@@ -148,6 +149,8 @@
   }
 
   function handleState(state) {
+    const wasInMatch = gameState
+      && ['countdown', 'racing', 'heat_results', 'match_finished'].includes(gameState.state);
     gameState = state;
     mySlot = state.mySlot;
 
@@ -156,6 +159,7 @@
     const inMatch = ['countdown', 'racing', 'heat_results', 'match_finished'].includes(state.state);
 
     if (!inMatch && state.mode === 'online') {
+      sentRacingSpeedLimit = false;
       showScreen('screen-lobby');
       updateLobby(state);
       updateOverlay(state);
@@ -166,13 +170,16 @@
       showScreen('screen-game');
       updateGameHud(state);
       updateOverlay(state);
-      if (state.state === 'racing' && mySlot != null) {
-        const pct = SPEED_LEVELS[speedLevel];
-        socket.emit('speed-limit', { percent: pct });
+      if (state.state === 'racing' && mySlot != null && !sentRacingSpeedLimit) {
+        sentRacingSpeedLimit = true;
+        socket.emit('speed-limit', { percent: SPEED_LEVELS[speedLevel] });
+      } else if (!wasInMatch && state.state === 'countdown') {
+        sentRacingSpeedLimit = false;
       }
       return;
     }
 
+    sentRacingSpeedLimit = false;
     showScreen('screen-landing');
   }
 
