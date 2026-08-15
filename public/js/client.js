@@ -415,4 +415,9 @@ function escapeHtml(str) {
 }
 
 renderFrame();
-initTrackPicker();
+
+loadTrackCatalog().then(() => {
+  initTrackPicker();
+}).catch(() => {
+  console.error('Nie udało się załadować tracks.json');
+});

@@ -1,0 +1,50 @@
+{
+  "tracks": [
+    {
+      "id": "classic",
+      "name": "Tor klasyczny",
+      "description": "Domyślny owal treningowy",
+      "preview": null,
+      "geometry": {
+        "centerX": 500,
+        "centerY": 350,
+        "straightHalf": 220,
+        "bendRadius": 130,
+        "width": 176,
+        "totalLaps": 4,
+        "barrierMargin": 6,
+        "startLaneSpacing": 23
+      },
+      "visual": {
+        "mode": "procedural",
+        "palette": "classic",
+        "showVectorLayer": false
+      }
+    },
+    {
+      "id": "leszno",
+      "name": "Leszno",
+      "description": "Stadion im. Alfreda Smoczyka · Unia Leszno",
+      "preview": "/img/tracks/leszno.jpg",
+      "image": "/img/tracks/leszno.jpg",
+      "geometry": {
+        "centerX": 500,
+        "centerY": 392,
+        "straightHalf": 168,
+        "bendRadius": 172,
+        "width": 138,
+        "totalLaps": 4,
+        "barrierMargin": 5,
+        "startLaneSpacing": 20
+      },
+      "visual": {
+        "mode": "image",
+        "fit": "cover",
+        "fallbackPalette": "leszno",
+        "showFinishLine": true,
+        "finishLineOpacity": 0.75,
+        "showVectorLayer": true
+      }
+    }
+  ]
+}

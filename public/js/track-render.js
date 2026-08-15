@@ -1,11 +1,3 @@
-const TRACK_CONFIG = {
-  centerX: 500,
-  centerY: 350,
-  straightHalf: 220,
-  bendRadius: 130,
-  width: 176,
-};
-
 const PALETTES = {
   classic: {
     background: '#d4b896',
@@ -27,8 +19,18 @@ let currentTrack = null;
 const imageCache = new Map();
 const imageReady = new Map();
 
-function traceStadium(ctx, halfWidth, side, config = TRACK_CONFIG) {
-  const { centerX, centerY, straightHalf, bendRadius } = config;
+function getGeometry(track) {
+  return track?.geometry || {
+    centerX: 500,
+    centerY: 350,
+    straightHalf: 220,
+    bendRadius: 130,
+    width: 176,
+  };
+}
+
+function traceStadium(ctx, halfWidth, side, geo) {
+  const { centerX, centerY, straightHalf, bendRadius } = geo;
   const leftX = centerX - straightHalf;
   const rightX = centerX + straightHalf;
   const r = bendRadius + side * halfWidth;
@@ -40,58 +42,80 @@ function traceStadium(ctx, halfWidth, side, config = TRACK_CONFIG) {
   ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, false);
 }
 
-function drawProceduralTrack(ctx, canvasW, canvasH, paletteName = 'classic') {
+function drawProceduralTrack(ctx, canvasW, canvasH, track) {
+  const geo = getGeometry(track);
+  const paletteName = track?.visual?.palette || 'classic';
   const palette = PALETTES[paletteName] || PALETTES.classic;
-  const { width } = TRACK_CONFIG;
-  const hw = width / 2;
+  const hw = geo.width / 2;
 
   ctx.fillStyle = palette.background;
   ctx.fillRect(0, 0, canvasW, canvasH);
 
   ctx.fillStyle = palette.outer;
   ctx.beginPath();
-  traceStadium(ctx, hw, 1);
-  traceStadium(ctx, hw, -1);
+  traceStadium(ctx, hw, 1, geo);
+  traceStadium(ctx, hw, -1, geo);
   ctx.fill('evenodd');
 
   ctx.fillStyle = palette.infield;
   ctx.beginPath();
-  traceStadium(ctx, hw, -1);
+  traceStadium(ctx, hw, -1, geo);
   ctx.fill();
 
   ctx.strokeStyle = palette.line;
   ctx.lineWidth = 4;
   ctx.beginPath();
-  traceStadium(ctx, hw, 1);
+  traceStadium(ctx, hw, 1, geo);
   ctx.stroke();
 
   ctx.lineWidth = 3;
   ctx.beginPath();
-  traceStadium(ctx, hw, -1);
+  traceStadium(ctx, hw, -1, geo);
   ctx.stroke();
 
-  const botY = TRACK_CONFIG.centerY + TRACK_CONFIG.bendRadius;
-  ctx.strokeStyle = palette.finish;
+  drawFinishLine(ctx, geo, palette.finish, 1);
+}
+
+function drawFinishLine(ctx, geo, color = '#ffffff', opacity = 1) {
+  const hw = geo.width / 2;
+  const botY = geo.centerY + geo.bendRadius;
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.moveTo(TRACK_CONFIG.centerX, botY - hw);
-  ctx.lineTo(TRACK_CONFIG.centerX, botY + hw);
+  ctx.moveTo(geo.centerX, botY - hw);
+  ctx.lineTo(geo.centerX, botY + hw);
   ctx.stroke();
+  ctx.restore();
 }
 
-function drawFinishLine(ctx, opacity = 0.85) {
-  const hw = TRACK_CONFIG.width / 2;
-  const botY = TRACK_CONFIG.centerY + TRACK_CONFIG.bendRadius;
+/** Warstwa wektorowa: zewnętrzna banda + wewnętrzna krawędź trasy */
+function drawVectorLayer(ctx, geo) {
+  const hw = geo.width / 2;
   ctx.save();
-  ctx.globalAlpha = opacity;
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 4;
-  ctx.setLineDash([10, 8]);
+
+  ctx.strokeStyle = 'rgba(255, 70, 70, 0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.moveTo(TRACK_CONFIG.centerX, botY - hw);
-  ctx.lineTo(TRACK_CONFIG.centerX, botY + hw);
+  traceStadium(ctx, hw, 1, geo);
   ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(70, 220, 110, 0.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  traceStadium(ctx, hw, -1, geo);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  traceStadium(ctx, 0, 1, geo);
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -143,19 +167,24 @@ function getCurrentTrack() {
 function drawTrack(ctx, canvasW, canvasH) {
   const track = currentTrack;
   const visual = track?.visual || { mode: 'procedural', palette: 'classic' };
+  const geo = getGeometry(track);
 
   if (visual.mode === 'image' && track?.image) {
     const ready = imageReady.get(track.id);
     if (ready?.ok && ready.image) {
       drawImageTrack(ctx, canvasW, canvasH, ready.image);
-      if (visual.showFinishLine) drawFinishLine(ctx, visual.finishLineOpacity ?? 0.85);
+      if (visual.showVectorLayer) drawVectorLayer(ctx, geo);
+      if (visual.showFinishLine) {
+        drawFinishLine(ctx, geo, '#ffffff', visual.finishLineOpacity ?? 0.85);
+      }
       return;
     }
-    drawProceduralTrack(ctx, canvasW, canvasH, visual.fallbackPalette || 'leszno');
+    drawProceduralTrack(ctx, canvasW, canvasH, track);
+    if (visual.showVectorLayer !== false) drawVectorLayer(ctx, geo);
     return;
   }
 
-  drawProceduralTrack(ctx, canvasW, canvasH, visual.palette || 'classic');
+  drawProceduralTrack(ctx, canvasW, canvasH, track);
 }
 
 function drawTrails(ctx, bikes, trails) {
@@ -223,9 +252,10 @@ window.TrackRender = {
   drawTrack,
   drawTrails,
   drawBike,
+  drawVectorLayer,
   setCurrentTrack,
   getCurrentTrack,
   preloadAllTracks,
   preloadTrackImage,
-  TRACK_CONFIG,
+  getGeometry,
 };
