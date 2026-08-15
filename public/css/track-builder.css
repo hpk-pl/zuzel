@@ -73,6 +73,13 @@
   color: #8b949e;
 }
 
+.builder-file-hint {
+  font-size: 0.75rem;
+  color: #8b949e;
+  line-height: 1.35;
+  margin-top: -0.25rem;
+}
+
 .builder-actions {
   display: flex;
   flex-wrap: wrap;
