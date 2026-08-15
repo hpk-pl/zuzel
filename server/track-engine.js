@@ -4,6 +4,7 @@ const {
   distanceToStadiumPath,
   isInsideStadium,
   centerlinePointOnOval,
+  getFinishLineSegment,
 } = require('./track-geometry');
 
 function shuffleArray(items) {
@@ -86,17 +87,38 @@ function createTrackEngine(geometry) {
   function getStartPositions(riders) {
     const baseT = getFinishT();
     const p = centerlinePoint(baseT);
-    const perpAngle = p.angle - Math.PI / 2;
+    const fl = getFinishLineSegment(geo);
+    const dx = fl.x2 - fl.x1;
+    const dy = fl.y2 - fl.y1;
+    const lineLen = Math.hypot(dx, dy) || 1;
     const laneIndices = shuffleArray([...Array(START_LANES).keys()]).slice(0, riders.length);
+    const bikeClearance = 14;
+    const endMargin = geo.barrierMargin + bikeClearance;
+    const usable = Math.max(24, lineLen - endMargin * 2);
 
     return riders.map((rider, i) => {
       const lane = laneIndices[i];
-      const laneOffset = (lane - (START_LANES - 1) / 2) * geo.startLaneSpacing;
+      const laneFrac = (lane + 0.5) / START_LANES;
+      const along = endMargin + usable * laneFrac;
+      const t = along / lineLen;
+      let x = fl.x1 + dx * t;
+      let y = fl.y1 + dy * t;
+
+      if (hasHitBarrier(x, y)) {
+        const steps = 12;
+        for (let s = 1; s <= steps; s++) {
+          const tt = t + (0.5 - t) * (s / steps);
+          const nx = fl.x1 + dx * tt;
+          const ny = fl.y1 + dy * tt;
+          if (!hasHitBarrier(nx, ny)) { x = nx; y = ny; break; }
+        }
+      }
+
       return {
         slot: rider.slot,
         lane,
-        x: p.x + Math.cos(perpAngle) * laneOffset,
-        y: p.y + Math.sin(perpAngle) * laneOffset,
+        x,
+        y,
         angle: p.angle,
       };
     });

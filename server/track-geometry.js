@@ -183,6 +183,17 @@ function averageOval(a, b) {
   };
 }
 
+/** Odcinek linii mety: od wewnętrznej do zewnętrznej bandy */
+function getFinishLineSegment(geo) {
+  if (geo.finishLine) {
+    return { ...geo.finishLine };
+  }
+  const cx = (geo.inner.centerX + geo.outer.centerX) / 2;
+  const y1 = geo.inner.centerY + geo.inner.bendRadius;
+  const y2 = geo.outer.centerY + geo.outer.bendRadius;
+  return { x1: cx, y1, x2: cx, y2 };
+}
+
 module.exports = {
   distToSegment,
   distToArc,
@@ -193,4 +204,5 @@ module.exports = {
   traceStadiumOval,
   centerlinePointOnOval,
   averageOval,
+  getFinishLineSegment,
 };
