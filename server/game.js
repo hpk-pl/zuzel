@@ -1,9 +1,8 @@
 const { TOTAL_HEATS, HEAT_POINTS } = require('./track');
 const { normalizeTrackId, getTrackEngine, registerCustomTrack, getDefaultTrackId } = require('./tracks-catalog');
+const { PICKABLE_COLORS, PLAYER_COLORS } = require('./player-colors');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
-const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
-const PICKABLE_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a'];
 const SLOT_KEYS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 

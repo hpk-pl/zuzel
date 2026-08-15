@@ -1,5 +1,5 @@
 (function () {
-  const PICKABLE_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a'];
+  const PICKABLE_COLORS = window.PICKABLE_COLORS || ['#FF2D55', '#FF9500', '#FFCC00', '#30D158', '#00D4FF', '#007AFF', '#BF5AF2', '#FF6B35'];
   const SPEED_LEVELS = [70, 80, 90, 100];
 
   let pendingAction = null;
