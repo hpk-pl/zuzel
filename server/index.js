@@ -176,7 +176,9 @@ io.on('connection', (socket) => {
       const conn = room.connections.get(socket.id);
       if (conn) conn.speedPercent = payload.percent;
     }
-    if (room.setSpeedLimit(slot, payload.percent)) emitState(room);
+    if (!room.setSpeedLimit(slot, payload.percent)) return;
+    // Podczas wyścigu stan i tak leci z pętli fizyki — unikamy pętli sprzężenia z klientów.
+    if (room.state === 'lobby' || room.state === 'match_finished') emitState(room);
   });
 
   socket.on('reset', () => {
@@ -192,23 +194,21 @@ io.on('connection', (socket) => {
   });
 });
 
-let countdownCounter = 0;
-let racingEmitCounter = 0;
 setInterval(() => {
   for (const room of gameManager.rooms.values()) {
     if (room.state === 'countdown') {
-      countdownCounter += 1;
-      if (countdownCounter >= COUNTDOWN_TICK) {
-        countdownCounter = 0;
+      room._countdownTicks = (room._countdownTicks || 0) + 1;
+      if (room._countdownTicks >= COUNTDOWN_TICK) {
+        room._countdownTicks = 0;
         room.tickCountdown();
         emitState(room);
       }
     } else if (room.state === 'racing') {
       room.tickPhysics();
-      racingEmitCounter += 1;
+      room._racingEmitTicks = (room._racingEmitTicks || 0) + 1;
       const heatEnded = room.state !== 'racing';
-      if (heatEnded || racingEmitCounter >= RACING_EMIT_EVERY) {
-        racingEmitCounter = 0;
+      if (heatEnded || room._racingEmitTicks >= RACING_EMIT_EVERY) {
+        room._racingEmitTicks = 0;
         emitState(room);
       }
     }
