@@ -25,9 +25,12 @@
   let bgObjectUrl = null;
   let pendingImageFile = null;
   let savedImageDataUrl = null;
+  let bgCache = null;
+  let bgCacheDirty = true;
   let dragHandle = null;
   let dragOffset = { x: 0, y: 0 };
   let exportPreviewTimer = null;
+  let renderPending = false;
 
   const state = {
     id: 'custom-moj-tor',
@@ -107,12 +110,48 @@
     };
   }
 
-  function drawBackground() {
-    if (!$('show-bg').checked) {
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  function invalidateBgCache() {
+    bgCacheDirty = true;
+  }
+
+  function prepareBgImageSource(img) {
+    const maxDim = 1600;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (Math.max(iw, ih) <= maxDim) {
+      bgImage = img;
+      invalidateBgCache();
+      scheduleRender();
       return;
     }
+    const scale = maxDim / Math.max(iw, ih);
+    const w = Math.max(1, Math.round(iw * scale));
+    const h = Math.max(1, Math.round(ih * scale));
+    const off = document.createElement('canvas');
+    off.width = w;
+    off.height = h;
+    off.getContext('2d').drawImage(img, 0, 0, w, h);
+    bgImage = off;
+    invalidateBgCache();
+    scheduleRender();
+  }
+
+  function rebuildBgCache() {
+    if (!bgCache) {
+      bgCache = document.createElement('canvas');
+      bgCache.width = CANVAS_W;
+      bgCache.height = CANVAS_H;
+    }
+    const bctx = bgCache.getContext('2d');
+    bctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    if (!$('show-bg').checked) {
+      bctx.fillStyle = '#1a1a1a';
+      bctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      bgCacheDirty = false;
+      return;
+    }
+
     if (bgImage) {
       const iw = bgImage.naturalWidth || bgImage.width;
       const ih = bgImage.naturalHeight || bgImage.height;
@@ -121,15 +160,23 @@
       const drawH = ih * scale;
       const dx = (CANVAS_W - drawW) / 2;
       const dy = (CANVAS_H - drawH) / 2;
-      ctx.drawImage(bgImage, dx, dy, drawW, drawH);
+      bctx.drawImage(bgImage, dx, dy, drawW, drawH);
+      bgCacheDirty = false;
       return;
     }
-    ctx.fillStyle = '#3d3428';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Wgraj tło stadionu lub wybierz tor z katalogu', CANVAS_W / 2, CANVAS_H / 2);
+
+    bctx.fillStyle = '#3d3428';
+    bctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    bctx.fillStyle = 'rgba(255,255,255,0.15)';
+    bctx.font = '16px sans-serif';
+    bctx.textAlign = 'center';
+    bctx.fillText('Wgraj tło stadionu lub wybierz tor z katalogu', CANVAS_W / 2, CANVAS_H / 2);
+    bgCacheDirty = false;
+  }
+
+  function drawBackground() {
+    if (bgCacheDirty || !bgCache) rebuildBgCache();
+    ctx.drawImage(bgCache, 0, 0);
   }
 
   function drawOverlays() {
@@ -191,6 +238,15 @@
     drawBackground();
     drawOverlays();
     drawHandles();
+  }
+
+  function scheduleRender() {
+    if (renderPending) return;
+    renderPending = true;
+    requestAnimationFrame(() => {
+      renderPending = false;
+      render();
+    });
   }
 
   function canvasPoint(evt) {
@@ -295,7 +351,7 @@
     evt.preventDefault();
     const pt = canvasPoint(evt);
     applyDrag(dragHandle, pt.x - dragOffset.x, pt.y - dragOffset.y);
-    render();
+    scheduleRender();
   }
 
   function onPointerUp(evt) {
@@ -353,16 +409,16 @@
         reject(new Error('Brak tła'));
         return;
       }
-      const iw = bgImage.naturalWidth || bgImage.width;
-      const ih = bgImage.naturalHeight || bgImage.height;
+      const source = bgImage;
+      const iw = source.naturalWidth || source.width;
+      const ih = source.naturalHeight || source.height;
       const scale = Math.min(1, maxDim / Math.max(iw, ih));
       const w = Math.max(1, Math.round(iw * scale));
       const h = Math.max(1, Math.round(ih * scale));
       const off = document.createElement('canvas');
       off.width = w;
       off.height = h;
-      const offCtx = off.getContext('2d');
-      offCtx.drawImage(bgImage, 0, 0, w, h);
+      off.getContext('2d').drawImage(source, 0, 0, w, h);
       resolve(off.toDataURL('image/jpeg', quality));
     });
   }
@@ -422,17 +478,15 @@
     } else {
       revokeBgObjectUrl();
       bgImage = null;
+      invalidateBgCache();
     }
     updateExportPreview();
-    render();
+    scheduleRender();
   }
 
   function loadBackgroundFromUrl(url) {
     const img = new Image();
-    img.onload = () => {
-      bgImage = img;
-      render();
-    };
+    img.onload = () => prepareBgImageSource(img);
     img.onerror = () => setStatus('Nie udało się wczytać obrazu tła.', 'err');
     img.src = url;
   }
@@ -482,7 +536,10 @@
     });
 
     ['show-bg', 'show-outer', 'show-inner', 'show-center', 'show-finish'].forEach((id) => {
-      $(id).addEventListener('change', render);
+      $(id).addEventListener('change', () => {
+        if (id === 'show-bg') invalidateBgCache();
+        scheduleRender();
+      });
     });
 
     ['track-id', 'track-name', 'track-desc', 'param-laps', 'param-margin', 'param-spacing'].forEach((id) => {
@@ -491,7 +548,7 @@
 
     $('btn-reset-finish').addEventListener('click', () => {
       syncFinishToGeometry();
-      render();
+      scheduleRender();
       scheduleExportPreview();
       setStatus('Linia mety wyrównana do dolnej prostej.', 'ok');
     });
@@ -564,7 +621,7 @@
     }
 
     updateExportPreview();
-    render();
+    scheduleRender();
   }
 
   init();
