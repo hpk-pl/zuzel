@@ -8,7 +8,7 @@ const { isValidTrackId, registerCustomTrack, reloadCatalog, getDefaultTrackId } 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
 const COUNTDOWN_TICK = 60;
-const RACING_EMIT_EVERY = 2;
+const RACING_EMIT_EVERY = 3;
 
 const app = express();
 const server = http.createServer(app);
@@ -30,9 +30,14 @@ function leaveSocketRoom(socket) {
   socket.leave(room.id);
   socket.data.roomId = null;
   if (!room.hasClients()) {
-    room.fullReset();
-    gameManager.removeRoom(room.id);
-    return null;
+    const keepAlive = room.mode === 'online'
+      && room.disconnectedSessions.size > 0
+      && room.state !== 'lobby';
+    if (!keepAlive) {
+      room.fullReset();
+      gameManager.removeRoom(room.id);
+      return null;
+    }
   }
   return room;
 }
@@ -75,12 +80,16 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: result.error });
       return;
     }
-    socket.emit('room-ready', { joinCode: room.joinCode, roomId: room.id, slot: result.slot });
+    socket.emit('room-ready', {
+      joinCode: room.joinCode,
+      roomId: room.id,
+      slot: result.slot,
+      sessionId: result.sessionId || profile.sessionId || null,
+    });
     emitState(room);
   });
 
   socket.on('join-room', ({ joinCode, ...profile } = {}) => {
-    reloadCatalog();
     const room = gameManager.findRoomByCode(joinCode);
     if (!room) {
       socket.emit('error', { message: 'Nie znaleziono pokoju o podanym kodzie.' });
@@ -98,7 +107,40 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: result.error });
       return;
     }
-    socket.emit('room-ready', { joinCode: room.joinCode, roomId: room.id, slot: result.slot });
+    socket.emit('room-ready', {
+      joinCode: room.joinCode,
+      roomId: room.id,
+      slot: result.slot,
+      sessionId: result.sessionId || profile.sessionId || null,
+    });
+    emitState(room);
+  });
+
+  socket.on('rejoin-room', ({ joinCode, sessionId } = {}) => {
+    const room = gameManager.findRoomByCode(joinCode);
+    if (!room) {
+      socket.emit('error', { message: 'Nie znaleziono pokoju o podanym kodzie.' });
+      return;
+    }
+    leaveSocketRoom(socket);
+    room.addClient(socket.id);
+    socket.join(room.id);
+    socket.data.roomId = room.id;
+    const result = room.rejoinOnlinePlayer(socket.id, { joinCode, sessionId });
+    if (!result.ok) {
+      room.removeClient(socket.id);
+      socket.leave(room.id);
+      socket.data.roomId = null;
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    socket.emit('room-ready', {
+      joinCode: room.joinCode,
+      roomId: room.id,
+      slot: result.slot,
+      sessionId: result.sessionId,
+      reconnected: true,
+    });
     emitState(room);
   });
 

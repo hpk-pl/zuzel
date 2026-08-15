@@ -230,6 +230,35 @@
   width: 100%;
 }
 
+.reconnect-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0));
+  background: rgba(22, 27, 34, 0.96);
+  border-top: 1px solid #30363d;
+  text-align: center;
+}
+
+.reconnect-banner.hidden {
+  display: none !important;
+}
+
+.reconnect-banner p {
+  margin: 0 0 0.75rem;
+  color: #f0c040;
+  font-size: 0.95rem;
+}
+
+.lobby-players .offline-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #8b949e;
+  margin-left: auto;
+}
+
 /* Gra w poziomie: tor po lewej, SKRĘĆ po prawej */
 @media (orientation: landscape) {
   .mobile-app:has(#screen-game:not(.hidden)) {

@@ -10,7 +10,59 @@
   let gameState = null;
   let speedLevel = 3;
   let sentRacingSpeedLimit = false;
+  let appliedTrackId = null;
+  let lastHudUpdate = 0;
+  let playerSessionId = null;
   const trails = new Map();
+
+  const SESSION_KEY = 'zuzel_player_session';
+  const ROOM_KEY = 'zuzel_room_session';
+
+  function getOrCreatePlayerSessionId() {
+    if (playerSessionId) return playerSessionId;
+    try {
+      let id = localStorage.getItem(SESSION_KEY);
+      if (!id) {
+        id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `p-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(SESSION_KEY, id);
+      }
+      playerSessionId = id;
+      return id;
+    } catch {
+      playerSessionId = `p-${Date.now()}`;
+      return playerSessionId;
+    }
+  }
+
+  function saveRoomSession(data) {
+    try {
+      localStorage.setItem(ROOM_KEY, JSON.stringify(data));
+    } catch { /* ignore */ }
+  }
+
+  function loadRoomSession() {
+    try {
+      const raw = localStorage.getItem(ROOM_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearRoomSession() {
+    try { localStorage.removeItem(ROOM_KEY); } catch { /* ignore */ }
+  }
+
+  function showReconnectBanner(message = 'Połączenie zerwane — dotknij, aby wrócić do gry') {
+    $('reconnect-message').textContent = message;
+    $('reconnect-banner').classList.remove('hidden');
+  }
+
+  function hideReconnectBanner() {
+    $('reconnect-banner').classList.add('hidden');
+  }
 
   const socket = io({ reconnection: true });
   const canvas = document.getElementById('track-canvas');
@@ -50,12 +102,28 @@
       name,
       team: $('profile-team').value,
       color: selectedColor,
+      sessionId: getOrCreatePlayerSessionId(),
     };
   }
 
+  function attemptRejoin() {
+    const saved = loadRoomSession();
+    if (!saved?.joinCode || !saved?.sessionId) {
+      showReconnectBanner('Brak zapisanej gry — odśwież stronę i dołącz kodem');
+      return;
+    }
+    showReconnectBanner('Łączenie…');
+    socket.emit('rejoin-room', {
+      joinCode: saved.joinCode,
+      sessionId: saved.sessionId,
+    });
+  }
+
   function applyTrackVisual(trackId) {
+    if (!trackId || trackId === appliedTrackId) return;
     const track = window.TRACK_BY_ID?.[trackId];
     if (!track || !window.TrackRender?.setCurrentTrack) return;
+    appliedTrackId = trackId;
     TrackRender.setCurrentTrack({
       ...track,
       visual: { ...track.visual, showVectorLayer: false },
@@ -73,6 +141,7 @@
         <span class="swatch" style="background:${p.color}"></span>
         <span>${escapeHtml(p.name)} · drużyna ${p.team}</span>
         ${p.socketId === state.hostId ? '<span class="host-badge">host</span>' : ''}
+        ${p.connected === false ? '<span class="offline-badge">offline</span>' : ''}
       </li>`).join('');
 
     const isHost = state.isHost;
@@ -128,7 +197,11 @@
     overlay.classList.add('hidden');
   }
 
-  function updateGameHud(state) {
+  function updateGameHud(state, force = false) {
+    const now = performance.now();
+    if (!force && state.state === 'racing' && now - lastHudUpdate < 200) return;
+    lastHudUpdate = now;
+
     const trackName = window.TRACK_BY_ID?.[state.trackId]?.name || 'Tor';
     $('race-info-mobile').textContent = state.heatNumber
       ? `Bieg ${state.heatNumber}/${state.totalHeats} · ${trackName}`
@@ -168,7 +241,7 @@
 
     if (inMatch) {
       showScreen('screen-game');
-      updateGameHud(state);
+      updateGameHud(state, state.state !== 'racing');
       updateOverlay(state);
       if (state.state === 'racing' && mySlot != null && !sentRacingSpeedLimit) {
         sentRacingSpeedLimit = true;
@@ -197,6 +270,7 @@
 
   // --- UI events ---
   $('btn-create-game').addEventListener('click', () => {
+    clearRoomSession();
     pendingAction = 'create';
     pendingJoinCode = '';
     $('profile-title').textContent = 'Stwórz grę — twój zawodnik';
@@ -209,6 +283,7 @@
       alert('Wpisz kod pokoju (6 znaków).');
       return;
     }
+    clearRoomSession();
     pendingAction = 'join';
     pendingJoinCode = code;
     $('profile-title').textContent = 'Dołącz do gry — twój zawodnik';
@@ -269,19 +344,42 @@
     if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
     if (e.target.id === 'overlay-reset') socket.emit('reset');
     if (e.target.id === 'overlay-menu') {
+      clearRoomSession();
       location.reload();
       return;
     }
   });
 
+  $('btn-reconnect').addEventListener('click', () => attemptRejoin());
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) setTurn(false);
+  });
+
+  socket.on('connect', () => {
+    hideReconnectBanner();
+    const saved = loadRoomSession();
+    if (saved?.joinCode && saved?.sessionId) {
+      attemptRejoin();
+    }
+  });
+
+  socket.on('disconnect', () => {
+    setTurn(false);
+    if (loadRoomSession()) {
+      showReconnectBanner();
+    }
   });
 
   socket.on('room-ready', (data) => {
     joinCode = data.joinCode;
     mySlot = data.slot;
-    showScreen('screen-lobby');
+    const sid = data.sessionId || getOrCreatePlayerSessionId();
+    playerSessionId = sid;
+    saveRoomSession({ joinCode: data.joinCode, sessionId: sid, slot: data.slot });
+    hideReconnectBanner();
+    sentRacingSpeedLimit = false;
+    if (!data.reconnected) showScreen('screen-lobby');
   });
 
   socket.on('state', (state) => {
@@ -303,7 +401,10 @@
     handleState(state);
   });
 
-  socket.on('error', ({ message }) => alert(message));
+  socket.on('error', ({ message }) => {
+    if (loadRoomSession()) showReconnectBanner(message);
+    else alert(message);
+  });
 
   initColorPicker();
   renderFrame();
