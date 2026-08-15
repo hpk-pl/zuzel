@@ -40,7 +40,10 @@
 
   const defaults = createDefaultGeometry();
 
-  let editMode = 'outer';
+  let editingCustomTrackId = null;
+  let baseCatalogTracks = [];
+  let pickerCatalog = [];
+  let catalogSelectBound = false;
 
   let bgImage = null;
   let bgObjectUrl = null;
@@ -481,8 +484,61 @@
     }, 120);
   }
 
+  function updateDeleteButton() {
+    const btn = $('btn-delete-track');
+    if (btn) btn.classList.toggle('hidden', !editingCustomTrackId);
+  }
+
+  function readLocalCustomTracks() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"tracks":[]}').tracks || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function resetToNewTrack() {
+    editingCustomTrackId = null;
+    updateDeleteButton();
+    state.id = 'custom-moj-tor';
+    state.name = 'Mój tor';
+    state.description = 'Tor skalibrowany w edytorze';
+    state.image = null;
+    state.geometry = JSON.parse(JSON.stringify(defaults));
+    state.finishLine = null;
+    state.visual = {
+      mode: 'image',
+      fit: 'cover',
+      showVectorLayer: true,
+      showFinishLine: true,
+      finishLineOpacity: 0.85,
+    };
+
+    $('track-id').value = 'custom-moj-tor';
+    $('track-name').value = state.name;
+    $('track-desc').value = state.description;
+    $('param-laps').value = state.geometry.totalLaps ?? 4;
+    $('param-margin').value = state.geometry.barrierMargin ?? 6;
+    $('param-spacing').value = state.geometry.startLaneSpacing ?? 23;
+
+    pendingImageFile = null;
+    savedImageDataUrl = null;
+    revokeBgObjectUrl();
+    bgImage = null;
+    invalidateBgCache();
+    syncFinishToGeometry();
+    scheduleExportPreview();
+    scheduleRender();
+  }
+
+  function refreshCatalogOptions() {
+    populateCatalogSelect([...baseCatalogTracks, ...readLocalCustomTracks()]);
+  }
+
   function loadTrackDefinition(track) {
     if (!track) return;
+    editingCustomTrackId = track.custom ? track.id : null;
+    updateDeleteButton();
     state.id = track.id;
     state.name = track.name;
     state.description = track.description || '';
@@ -529,6 +585,7 @@
   }
 
   function populateCatalogSelect(catalog) {
+    pickerCatalog = catalog;
     const select = $('load-track-select');
     select.innerHTML = '<option value="">— wybierz —</option>';
     for (const track of catalog) {
@@ -537,10 +594,13 @@
       opt.textContent = track.name;
       select.appendChild(opt);
     }
-    select.addEventListener('change', () => {
-      const track = catalog.find((t) => t.id === select.value);
-      if (track) loadTrackDefinition(track);
-    });
+    if (!catalogSelectBound) {
+      catalogSelectBound = true;
+      select.addEventListener('change', () => {
+        const track = pickerCatalog.find((t) => t.id === select.value);
+        if (track) loadTrackDefinition(track);
+      });
+    }
   }
 
   function bindUi() {
@@ -603,11 +663,35 @@
       try {
         const def = await buildTrackDefinitionForExport();
         saveCustomTrack(def);
+        editingCustomTrackId = def.id;
+        updateDeleteButton();
+        refreshCatalogOptions();
+        const select = $('load-track-select');
+        if (select) select.value = def.id;
         scheduleExportPreview();
         setStatus(`Zapisano „${def.name}” — tor pojawi się w menu gry po odświeżeniu.`, 'ok');
       } catch (err) {
         setStatus(`Błąd zapisu: ${err.message}`, 'err');
       }
+    });
+
+    $('btn-delete-track').addEventListener('click', () => {
+      if (!editingCustomTrackId) return;
+      const name = $('track-name').value.trim() || editingCustomTrackId;
+      if (!confirm(`Usunąć tor „${name}”? Tej operacji nie można cofnąć.`)) return;
+
+      const deleted = window.deleteCustomTrack
+        ? window.deleteCustomTrack(editingCustomTrackId)
+        : false;
+      if (!deleted) {
+        const tracks = readLocalCustomTracks().filter((t) => t.id !== editingCustomTrackId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks }));
+      }
+
+      $('load-track-select').value = '';
+      refreshCatalogOptions();
+      resetToNewTrack();
+      setStatus(`Usunięto tor „${name}”.`, 'ok');
     });
 
     $('btn-copy-json').addEventListener('click', async () => {
@@ -670,6 +754,7 @@
         setStatus('Uszkodzone tory w localStorage — pomijam.', 'err');
       }
 
+      baseCatalogTracks = catalog;
       populateCatalogSelect([...catalog, ...custom]);
 
       const params = new URLSearchParams(window.location.search);

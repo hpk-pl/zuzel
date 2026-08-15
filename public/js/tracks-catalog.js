@@ -13,6 +13,10 @@ function readCustomTracks() {
   }
 }
 
+function writeCustomTracks(tracks) {
+  localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify({ tracks }));
+}
+
 function mergeCatalog(baseTracks, customTracks) {
   const byId = new Map(baseTracks.map((t) => [t.id, t]));
   for (const track of customTracks) {
@@ -21,22 +25,36 @@ function mergeCatalog(baseTracks, customTracks) {
   return [...byId.values()];
 }
 
+function applyCatalog(baseTracks, customTracks) {
+  window.TRACK_CATALOG = mergeCatalog(baseTracks, customTracks);
+  window.TRACK_BY_ID = Object.fromEntries(
+    window.TRACK_CATALOG.map((track) => [track.id, track])
+  );
+  return window.TRACK_CATALOG;
+}
+
 window.loadTrackCatalog = function loadTrackCatalog() {
   return fetch('/tracks.json')
     .then((r) => r.json())
     .then((data) => {
       const base = data.tracks || [];
       const custom = readCustomTracks();
-      window.TRACK_CATALOG = mergeCatalog(base, custom);
-      window.TRACK_BY_ID = Object.fromEntries(
-        window.TRACK_CATALOG.map((track) => [track.id, track])
-      );
-      return window.TRACK_CATALOG;
+      return applyCatalog(base, custom);
     });
 };
 
 window.getCustomTrackDefinition = function getCustomTrackDefinition(trackId) {
   return window.TRACK_BY_ID?.[trackId] || null;
+};
+
+window.deleteCustomTrack = function deleteCustomTrack(trackId) {
+  const stored = JSON.parse(localStorage.getItem(CUSTOM_STORAGE_KEY) || '{"tracks":[]}');
+  const tracks = stored.tracks || [];
+  if (!tracks.some((t) => t.id === trackId)) return false;
+  writeCustomTracks(tracks.filter((t) => t.id !== trackId));
+  const base = (window.TRACK_CATALOG || []).filter((t) => !t.custom);
+  applyCatalog(base, readCustomTracks());
+  return true;
 };
 
 window.registerRuntimeTrack = function registerRuntimeTrack(definition) {

@@ -354,6 +354,13 @@ kbd {
   letter-spacing: 0.04em;
 }
 
+.track-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .track-card-edit {
   font-size: 0.72rem;
   text-align: center;
@@ -363,6 +370,20 @@ kbd {
 
 .track-card-edit:hover {
   text-decoration: underline;
+}
+
+.track-card-delete {
+  font-size: 0.72rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #f85149;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.track-card-delete:hover {
+  color: #ff7b72;
 }
 
 .setup-hint a {

@@ -18,7 +18,11 @@ function initTrackPicker() {
         <span class="track-card-name">${escapeHtml(track.name)}${track.custom ? ' <span class="track-custom-badge">własny</span>' : ''}</span>
         <span class="track-card-desc">${escapeHtml(track.description)}</span>
       </button>
-      ${track.custom ? `<a class="track-card-edit" href="/track-builder.html?edit=${encodeURIComponent(track.id)}">Edytuj tor</a>` : ''}
+      ${track.custom ? `
+        <div class="track-card-actions">
+          <a class="track-card-edit" href="/track-builder.html?edit=${encodeURIComponent(track.id)}">Edytuj</a>
+          <button type="button" class="track-card-delete" data-track-id="${track.id}">Usuń</button>
+        </div>` : ''}
     </div>
   `).join('');
 
@@ -27,6 +31,20 @@ function initTrackPicker() {
       selectedTrackId = card.dataset.trackId;
       container.querySelectorAll('.track-card').forEach((c) => c.classList.toggle('selected', c === card));
       applyTrackVisual(selectedTrackId);
+    });
+  });
+
+  container.querySelectorAll('.track-card-delete').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const trackId = btn.dataset.trackId;
+      const track = window.TRACK_BY_ID?.[trackId];
+      if (!track?.custom) return;
+      if (!confirm(`Usunąć tor „${track.name}”? Tej operacji nie można cofnąć.`)) return;
+      window.deleteCustomTrack(trackId);
+      if (selectedTrackId === trackId) selectedTrackId = 'classic';
+      initTrackPicker();
     });
   });
 
