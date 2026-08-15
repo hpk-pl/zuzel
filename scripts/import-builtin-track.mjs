@@ -64,7 +64,10 @@ function buildEntry(exportData, opts) {
   }
 
   const visual = { ...(exportData.visual || {}), showVectorLayer: false };
-  delete visual.mode; // keep mode from export
+  if (imagePath) {
+    visual.mode = 'image';
+    if (!visual.fit) visual.fit = 'cover';
+  }
 
   const entry = {
     id,

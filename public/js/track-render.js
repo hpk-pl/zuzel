@@ -122,6 +122,12 @@ function invalidateBgLayer() {
   bgLayerTrackKey = null;
 }
 
+function shouldDrawImageTrack(track, visual) {
+  if (!track?.image) return false;
+  if (visual.mode === 'procedural') return false;
+  return visual.mode === 'image' || typeof track.image === 'string';
+}
+
 function buildBgLayer(canvasW, canvasH, track) {
   const off = document.createElement('canvas');
   off.width = canvasW;
@@ -130,7 +136,7 @@ function buildBgLayer(canvasW, canvasH, track) {
   const visual = track?.visual || { mode: 'procedural', palette: 'classic' };
   const geo = getGeometry(track);
 
-  if (visual.mode === 'image' && track?.image) {
+  if (shouldDrawImageTrack(track, visual)) {
     const ready = imageReady.get(track.id);
     if (ready?.ok && ready.image) {
       drawImageTrack(bctx, canvasW, canvasH, ready.image);

@@ -207,8 +207,13 @@ function startMatch() {
     teamB: $('team-b-name').value.trim(),
     trackId: selectedTrackId,
   };
-  const customDef = window.getCustomTrackDefinition?.(selectedTrackId);
-  if (customDef?.custom) payload.trackDefinition = customDef;
+  const track = window.TRACK_BY_ID?.[selectedTrackId];
+  if (track?.custom || track?.locked) {
+    payload.trackDefinition = {
+      ...track,
+      visual: { ...track.visual, showVectorLayer: false },
+    };
+  }
   socket.emit('start-match', payload);
 }
 

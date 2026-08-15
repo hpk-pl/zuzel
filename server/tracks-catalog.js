@@ -1,16 +1,40 @@
+const fs = require('fs');
 const path = require('path');
-const catalog = require(path.join(__dirname, '..', 'public', 'tracks.json'));
 const { createTrackEngine } = require('./track-engine');
 
-const TRACKS = Object.fromEntries(catalog.tracks.map((t) => [t.id, t]));
-const TRACK_IDS = catalog.tracks.map((t) => t.id);
-const TRACK_META = Object.fromEntries(catalog.tracks.map((t) => [t.id, { name: t.name }]));
-const DEFAULT_TRACK_ID = catalog.tracks.find((t) => t.default && !t.hidden)?.id
-  || catalog.tracks.find((t) => !t.hidden)?.id
-  || 'classic';
+const CATALOG_PATH = path.join(__dirname, '..', 'public', 'tracks.json');
 
 const customTracks = new Map();
 const engineCache = new Map();
+
+let catalog = loadCatalogFromDisk();
+let TRACKS = buildTracksMap(catalog);
+let TRACK_IDS = catalog.tracks.map((t) => t.id);
+let TRACK_META = Object.fromEntries(catalog.tracks.map((t) => [t.id, { name: t.name }]));
+let DEFAULT_TRACK_ID = resolveDefaultTrackId(catalog);
+
+function loadCatalogFromDisk() {
+  return JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
+}
+
+function buildTracksMap(nextCatalog) {
+  return Object.fromEntries(nextCatalog.tracks.map((t) => [t.id, t]));
+}
+
+function resolveDefaultTrackId(nextCatalog) {
+  return nextCatalog.tracks.find((t) => t.default && !t.hidden)?.id
+    || nextCatalog.tracks.find((t) => !t.hidden)?.id
+    || 'classic';
+}
+
+function reloadCatalog({ clearEngines = true } = {}) {
+  catalog = loadCatalogFromDisk();
+  TRACKS = buildTracksMap(catalog);
+  TRACK_IDS = catalog.tracks.map((t) => t.id);
+  TRACK_META = Object.fromEntries(catalog.tracks.map((t) => [t.id, { name: t.name }]));
+  DEFAULT_TRACK_ID = resolveDefaultTrackId(catalog);
+  if (clearEngines) engineCache.clear();
+}
 
 function isValidTrackId(trackId) {
   return TRACK_IDS.includes(trackId) || customTracks.has(trackId);
@@ -76,6 +100,7 @@ module.exports = {
   normalizeTrackId,
   getDefaultTrackId,
   isLockedTrackId,
+  reloadCatalog,
   registerCustomTrack,
   getTrackDefinition,
   getTrackGeometry,
