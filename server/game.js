@@ -1,5 +1,5 @@
 const { TOTAL_HEATS, HEAT_POINTS } = require('./track');
-const { normalizeTrackId, getTrackEngine } = require('./tracks-catalog');
+const { normalizeTrackId, getTrackEngine, registerCustomTrack } = require('./tracks-catalog');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
@@ -124,6 +124,7 @@ class GameRoom {
     this.matchSummary = null;
     this.trackId = 'classic';
     this.trackEngine = getTrackEngine('classic');
+    this.trackDefinition = null;
   }
 
   setHost(socketId) {
@@ -151,9 +152,17 @@ class GameRoom {
     return this.hostId === socketId;
   }
 
-  setTrack(trackId) {
+  setTrack(trackId, trackDefinition = null) {
+    if (trackDefinition) {
+      registerCustomTrack(trackDefinition);
+      this.trackId = trackDefinition.id;
+      this.trackEngine = getTrackEngine(trackDefinition.id);
+      this.trackDefinition = trackDefinition;
+      return;
+    }
     this.trackId = normalizeTrackId(trackId);
     this.trackEngine = getTrackEngine(this.trackId);
+    this.trackDefinition = null;
   }
 
   /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
@@ -223,10 +232,10 @@ class GameRoom {
     this.lastHeatResults = null;
   }
 
-  startMatch(trackId) {
+  startMatch(trackId, trackDefinition = null) {
     if (this.riders.size < 1) return false;
     if (this.state !== 'lobby' && this.state !== 'match_finished') return false;
-    this.setTrack(trackId);
+    this.setTrack(trackId, trackDefinition);
     this.heatNumber = 1;
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
@@ -359,6 +368,7 @@ class GameRoom {
       lastHeatResults: this.lastHeatResults,
       matchSummary: this.matchSummary,
       trackId: this.trackId,
+      trackDefinition: this.trackDefinition,
       canNextHeat: this.state === 'heat_results' && this.heatNumber < TOTAL_HEATS,
       players: this.getRiderList().map((p) => ({
         name: p.name,

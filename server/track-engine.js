@@ -48,6 +48,7 @@ function createTrackEngine(geometry) {
     totalLaps: geometry.totalLaps ?? 4,
     barrierMargin: geometry.barrierMargin ?? 6,
     startLaneSpacing: geometry.startLaneSpacing ?? 23,
+    finishLine: geometry.finishLine || null,
   };
 
   function trackLength() {
@@ -56,6 +57,20 @@ function createTrackEngine(geometry) {
   }
 
   function getFinishT() {
+    if (geo.finishLine) {
+      const { x1, y1, x2, y2 } = geo.finishLine;
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      let bestT = 0;
+      let best = Infinity;
+      for (let i = 0; i <= 240; i++) {
+        const t = i / 240;
+        const p = centerlinePoint(t);
+        const d = (p.x - mx) ** 2 + (p.y - my) ** 2;
+        if (d < best) { best = d; bestT = t; }
+      }
+      return bestT;
+    }
     const straightLen = geo.straightHalf * 2;
     return (straightLen / 2) / trackLength();
   }

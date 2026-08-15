@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edytor torów — Żużel</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/track-builder.css">
+</head>
+<body>
+  <div class="builder-app">
+    <header class="builder-header">
+      <div>
+        <h1>🛠️ Edytor torów</h1>
+        <p>Wgraj tło stadionu i dopasuj bandy oraz linię start/meta do grafiki.</p>
+      </div>
+      <a href="/" class="btn">← Gra</a>
+    </header>
+
+    <div class="builder-layout">
+      <aside class="builder-sidebar">
+        <section class="builder-section">
+          <h3>Tor bazowy</h3>
+          <label>
+            Załaduj z katalogu
+            <select id="load-track-select">
+              <option value="">— wybierz —</option>
+            </select>
+          </label>
+          <label>
+            Tło (JPG/PNG)
+            <input type="file" id="bg-upload" accept="image/*">
+          </label>
+        </section>
+
+        <section class="builder-section">
+          <h3>Metadane</h3>
+          <label>ID (bez spacji) <input type="text" id="track-id" value="custom-moj-tor"></label>
+          <label>Nazwa <input type="text" id="track-name" value="Mój tor"></label>
+          <label>Opis <input type="text" id="track-desc" value="Tor skalibrowany w edytorze"></label>
+        </section>
+
+        <section class="builder-section">
+          <h3>Warstwy</h3>
+          <div class="layer-toggles">
+            <label><input type="checkbox" id="show-bg" checked> Tło</label>
+            <label><input type="checkbox" id="show-outer" checked> Banda zewnętrzna</label>
+            <label><input type="checkbox" id="show-inner" checked> Banda wewnętrzna</label>
+            <label><input type="checkbox" id="show-center" checked> Linia środkowa</label>
+            <label><input type="checkbox" id="show-finish" checked> Linia start/meta</label>
+          </div>
+          <div class="layer-legend">
+            <div class="legend-item"><span class="legend-swatch outer"></span> Banda zewnętrzna</div>
+            <div class="legend-item"><span class="legend-swatch inner"></span> Banda wewnętrzna</div>
+            <div class="legend-item"><span class="legend-swatch center"></span> Środek trasy</div>
+            <div class="legend-item"><span class="legend-swatch finish"></span> Start / meta</div>
+          </div>
+        </section>
+
+        <section class="builder-section">
+          <h3>Parametry</h3>
+          <label>Okrażenia <input type="number" id="param-laps" min="1" max="20" value="4"></label>
+          <label>Margines bandy <input type="number" id="param-margin" min="0" max="30" value="6"></label>
+          <label>Odstęp startowy <input type="number" id="param-spacing" min="10" max="40" value="23"></label>
+          <div class="builder-actions">
+            <button type="button" class="btn" id="btn-reset-finish">Reset mety</button>
+          </div>
+        </section>
+
+        <section class="builder-section">
+          <h3>Eksport</h3>
+          <div class="builder-actions">
+            <button type="button" class="btn primary" id="btn-save-game">Zapisz do gry</button>
+            <button type="button" class="btn" id="btn-copy-json">Kopiuj JSON</button>
+            <button type="button" class="btn" id="btn-download-json">Pobierz JSON</button>
+          </div>
+          <p class="builder-status" id="export-status"></p>
+          <textarea id="export-json" readonly placeholder="JSON toru pojawi się tutaj…"></textarea>
+        </section>
+      </aside>
+
+      <main>
+        <div class="builder-canvas-wrap">
+          <canvas id="builder-canvas" width="1000" height="700"></canvas>
+          <div class="builder-canvas-hint" id="canvas-hint">
+            Przeciągaj uchwyty: środek · boki prostej · góra/dół łuku · szerokość · linia mety
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/track-render.js?v=11"></script>
+  <script src="/js/track-builder.js?v=11"></script>
+</body>
+</html>

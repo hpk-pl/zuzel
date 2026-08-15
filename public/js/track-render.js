@@ -79,14 +79,18 @@ function drawProceduralTrack(ctx, canvasW, canvasH, track) {
 function drawFinishLine(ctx, geo, color = '#ffffff', opacity = 1) {
   const hw = geo.width / 2;
   const botY = geo.centerY + geo.bendRadius;
+  const x1 = geo.finishLine?.x1 ?? geo.centerX;
+  const y1 = geo.finishLine?.y1 ?? botY - hw;
+  const x2 = geo.finishLine?.x2 ?? geo.centerX;
+  const y2 = geo.finishLine?.y2 ?? botY + hw;
   ctx.save();
   ctx.globalAlpha = opacity;
   ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.moveTo(geo.centerX, botY - hw);
-  ctx.lineTo(geo.centerX, botY + hw);
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
   ctx.stroke();
   ctx.restore();
 }
