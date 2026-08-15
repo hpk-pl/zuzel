@@ -10,7 +10,7 @@
   const statusEl = document.getElementById('export-status');
   const exportArea = document.getElementById('export-json');
 
-  const defaults = window.TrackGeometry.normalizeGeometry({
+  const LEGACY_GEOMETRY = {
     centerX: 500,
     centerY: 350,
     straightHalf: 220,
@@ -19,7 +19,26 @@
     totalLaps: 4,
     barrierMargin: 6,
     startLaneSpacing: 23,
-  });
+  };
+
+  function createDefaultGeometry() {
+    if (window.TrackGeometry?.normalizeGeometry) {
+      return window.TrackGeometry.normalizeGeometry(LEGACY_GEOMETRY);
+    }
+    const { centerX, centerY, straightHalf, bendRadius, width, totalLaps, barrierMargin, startLaneSpacing } = LEGACY_GEOMETRY;
+    const hw = width / 2;
+    return {
+      outer: { centerX, centerY, straightHalf, bendRadius: bendRadius + hw },
+      inner: { centerX, centerY, straightHalf, bendRadius: Math.max(20, bendRadius - hw) },
+      centerline: { centerX, centerY, straightHalf, bendRadius },
+      finishLine: null,
+      totalLaps,
+      barrierMargin,
+      startLaneSpacing,
+    };
+  }
+
+  const defaults = createDefaultGeometry();
 
   let editMode = 'outer';
 
@@ -118,6 +137,8 @@
     };
     $('canvas-hint').textContent = hints[editMode] || hints.outer;
   }
+
+  function invalidateBgCache() {
     bgCacheDirty = true;
   }
 
@@ -359,6 +380,13 @@
     scheduleExportPreview();
   }
 
+  function normalizeLoadedGeometry(raw) {
+    if (window.TrackGeometry?.normalizeGeometry) {
+      return window.TrackGeometry.normalizeGeometry(raw || {});
+    }
+    return createDefaultGeometry();
+  }
+
   function revokeBgObjectUrl() {
     if (bgObjectUrl) {
       URL.revokeObjectURL(bgObjectUrl);
@@ -459,7 +487,7 @@
     state.name = track.name;
     state.description = track.description || '';
     state.image = track.image || track.preview || null;
-    state.geometry = window.TrackGeometry.normalizeGeometry(track.geometry || {});
+    state.geometry = normalizeLoadedGeometry(track.geometry);
     state.finishLine = state.geometry.finishLine ? { ...state.geometry.finishLine } : null;
     state.visual = { ...state.visual, ...(track.visual || {}) };
 
@@ -616,30 +644,48 @@
   }
 
   async function init() {
-    bindUi();
-    syncFinishToGeometry();
-    updateEditModeHint();
-
-    let catalog = [];
-    try {
-      const res = await fetch('/tracks.json');
-      const data = await res.json();
-      catalog = data.tracks || [];
-    } catch { /* ignore */ }
-
-    const custom = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"tracks":[]}').tracks || [];
-    populateCatalogSelect([...catalog, ...custom]);
-
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get('edit');
-    const all = [...catalog, ...custom];
-    if (editId) {
-      const track = all.find((t) => t.id === editId);
-      if (track) loadTrackDefinition(track);
+    if (!window.TrackGeometry) {
+      setStatus('Uwaga: brak track-geometry.js — używam trybu awaryjnego.', 'err');
     }
 
-    updateExportPreview();
-    scheduleRender();
+    try {
+      bindUi();
+      syncFinishToGeometry();
+      updateEditModeHint();
+
+      let catalog = [];
+      try {
+        const res = await fetch('/tracks.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        catalog = data.tracks || [];
+      } catch (err) {
+        setStatus(`Nie udało się wczytać tracks.json: ${err.message}`, 'err');
+      }
+
+      let custom = [];
+      try {
+        custom = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"tracks":[]}').tracks || [];
+      } catch {
+        setStatus('Uszkodzone tory w localStorage — pomijam.', 'err');
+      }
+
+      populateCatalogSelect([...catalog, ...custom]);
+
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get('edit');
+      const all = [...catalog, ...custom];
+      if (editId) {
+        const track = all.find((t) => t.id === editId);
+        if (track) loadTrackDefinition(track);
+      }
+
+      updateExportPreview();
+      scheduleRender();
+    } catch (err) {
+      console.error(err);
+      setStatus(`Błąd inicjalizacji edytora: ${err.message}`, 'err');
+    }
   }
 
   init();
