@@ -2,7 +2,6 @@ const { TOTAL_HEATS, HEAT_POINTS } = require('./track');
 const { normalizeTrackId, getTrackEngine, registerCustomTrack, getDefaultTrackId } = require('./tracks-catalog');
 const { PICKABLE_COLORS, PLAYER_COLORS } = require('./player-colors');
 
-const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const SLOT_KEYS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
@@ -410,6 +409,15 @@ class GameRoom {
     return [...this.riders.values()].sort((a, b) => a.slot - b.slot);
   }
 
+  recalcTeamScores() {
+    this.teamScores = { A: 0, B: 0 };
+    for (const rider of this.riders.values()) {
+      const pts = this.scores[rider.slot] || 0;
+      if (rider.team === 'B') this.teamScores.B += pts;
+      else this.teamScores.A += pts;
+    }
+  }
+
   startHeat() {
     const riders = this.getRiderList();
     const positions = this.trackEngine.getStartPositions(riders);
@@ -502,8 +510,7 @@ class GameRoom {
     for (const r of results) {
       this.scores[r.slot] = (this.scores[r.slot] || 0) + r.points;
     }
-    this.teamScores.A = [0, 1].reduce((s, sl) => s + (this.scores[sl] || 0), 0);
-    this.teamScores.B = [2, 3].reduce((s, sl) => s + (this.scores[sl] || 0), 0);
+    this.recalcTeamScores();
 
     if (this.heatNumber >= TOTAL_HEATS) {
       this.state = 'match_finished';
