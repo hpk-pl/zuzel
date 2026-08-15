@@ -585,10 +585,11 @@
   }
 
   function populateCatalogSelect(catalog) {
-    pickerCatalog = catalog;
+    const editable = catalog.filter((track) => !track.locked);
+    pickerCatalog = editable;
     const select = $('load-track-select');
     select.innerHTML = '<option value="">— wybierz —</option>';
-    for (const track of catalog) {
+    for (const track of editable) {
       const opt = document.createElement('option');
       opt.value = track.id;
       opt.textContent = track.name;

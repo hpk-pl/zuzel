@@ -32,7 +32,7 @@ function initTrackPicker() {
     <div class="track-card-wrap">
       <button type="button" class="track-card${track.id === selectedTrackId ? ' selected' : ''}" data-track-id="${track.id}">
         <span class="track-card-preview" style="${track.preview || track.image ? `background-image:url('${track.preview || track.image}')` : ''}"></span>
-        <span class="track-card-name">${escapeHtml(track.name)}${track.custom ? ' <span class="track-custom-badge">własny</span>' : ''}</span>
+        <span class="track-card-name">${escapeHtml(track.name)}${track.locked ? ' <span class="track-official-badge">oficjalny</span>' : ''}${track.custom ? ' <span class="track-custom-badge">własny</span>' : ''}</span>
         <span class="track-card-desc">${escapeHtml(track.description)}</span>
       </button>
       ${track.custom ? `
