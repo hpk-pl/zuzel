@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Żużel — gra lokalna (PC)</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🏍️ Żużel</h1>
+      <p class="subtitle">Mecz 15 biegów · do 4 graczy na jednym komputerze · <a href="/">tryb online</a></p>
+    </header>
+
+    <div id="setup" class="panel">
+      <h2>Zawodnicy</h2>
+      <p class="setup-hint">Wpisz nicki zawodników (puste pole = brak zawodnika). Max 2 na drużynę. Kliknij pokrętło, aby ustawić limit prędkości.</p>
+
+      <div class="riders-grid" id="riders-grid">
+        <div class="rider-row" data-slot="0">
+          <span class="rider-key red"><kbd>L Ctrl</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 1 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+          <div class="speed-dial" data-slot="0" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
+        </div>
+        <div class="rider-row" data-slot="1">
+          <span class="rider-key blue"><kbd>V</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 2 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
+          <div class="speed-dial" data-slot="1" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
+        </div>
+        <div class="rider-row" data-slot="2">
+          <span class="rider-key green"><kbd>R Ctrl</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 3 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+          <div class="speed-dial" data-slot="2" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
+        </div>
+        <div class="rider-row" data-slot="3">
+          <span class="rider-key yellow"><kbd>Num 0</kbd></span>
+          <input type="text" class="rider-name" placeholder="Zawodnik 4 (opcjonalnie)" maxlength="16">
+          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
+          <div class="speed-dial" data-slot="3" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
+            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+            <span class="speed-dial-label">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-picker panel-inset">
+        <h3>Tor</h3>
+        <p class="setup-hint">Wybierz stadion przed startem meczu.</p>
+        <div id="track-options" class="track-options"></div>
+      </div>
+
+      <div class="team-names-row">
+        <label>Nazwa drużyny A <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
+        <label>Nazwa drużyny B <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
+      </div>
+
+      <div id="teams-display"></div>
+      <div id="score-table" class="score-table hidden"></div>
+
+      <div class="lobby-actions">
+        <button id="btn-start" class="btn primary">Start meczu</button>
+      </div>
+    </div>
+
+    <div id="game-area" class="hidden">
+      <canvas id="track-canvas" width="1000" height="700"></canvas>
+      <div id="hud">
+        <div id="race-info"></div>
+        <div id="lap-board"></div>
+        <div id="score-board"></div>
+      </div>
+      <div id="speed-dials-hud" class="speed-dials-hud"></div>
+    </div>
+
+    <div id="controls-help" class="panel">
+      <h3>Sterowanie — skręt w lewo</h3>
+      <div class="control-grid">
+        <div class="control-item red"><kbd>L Ctrl</kbd> Slot 1 — Czerwony</div>
+        <div class="control-item blue"><kbd>V</kbd> Slot 2 — Niebieski</div>
+        <div class="control-item green"><kbd>R Ctrl</kbd> Slot 3 — Zielony</div>
+        <div class="control-item yellow"><kbd>Num 0</kbd> Slot 4 — Żółty</div>
+      </div>
+      <p class="rules">
+        Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja: 3-2-1-0 (upadek = u = 0 pkt).
+        Pokrętło prędkości: 70% · 80% · 90% · 100% maksymalnej prędkości (kliknij, aby przełączyć).
+      </p>
+    </div>
+
+    <div id="overlay" class="hidden">
+      <div id="overlay-content"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/track-geometry.js?v=21"></script>
+  <script src="/js/tracks-catalog.js?v=21"></script>
+  <script src="/js/track-render.js?v=21"></script>
+  <script src="/js/client.js?v=21"></script>
+</body>
+</html>
