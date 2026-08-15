@@ -5,13 +5,30 @@ const CODE_TO_SLOT = Object.fromEntries(
 const SLOT_LABELS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
-let selectedTrackId = 'classic';
+let selectedTrackId = null;
 
 function initTrackPicker() {
   const container = $('track-options');
   if (!container || !window.TRACK_CATALOG) return;
 
-  container.innerHTML = window.TRACK_CATALOG.map((track) => `
+  const visibleTracks = window.getVisibleTracks?.() || window.TRACK_CATALOG.filter((t) => !t.hidden);
+  const defaultId = window.getDefaultTrackId?.() || 'classic';
+  if (!selectedTrackId || !visibleTracks.some((t) => t.id === selectedTrackId)) {
+    selectedTrackId = defaultId;
+  }
+
+  if (!visibleTracks.length) {
+    container.innerHTML = `
+      <p class="setup-hint track-picker-empty">
+        Brak torów do wyboru. Utwórz tor w <a href="/track-builder.html">edytorze torów</a> i zapisz go do gry.
+      </p>`;
+    if (window.TrackRender?.preloadAllTracks) {
+      TrackRender.preloadAllTracks(window.TRACK_CATALOG);
+    }
+    return;
+  }
+
+  container.innerHTML = visibleTracks.map((track) => `
     <div class="track-card-wrap">
       <button type="button" class="track-card${track.id === selectedTrackId ? ' selected' : ''}" data-track-id="${track.id}">
         <span class="track-card-preview" style="${track.preview || track.image ? `background-image:url('${track.preview || track.image}')` : ''}"></span>
@@ -43,7 +60,7 @@ function initTrackPicker() {
       if (!track?.custom) return;
       if (!confirm(`Usunąć tor „${track.name}”? Tej operacji nie można cofnąć.`)) return;
       window.deleteCustomTrack(trackId);
-      if (selectedTrackId === trackId) selectedTrackId = 'classic';
+      if (selectedTrackId === trackId) selectedTrackId = window.getDefaultTrackId?.() || 'classic';
       initTrackPicker();
     });
   });
@@ -172,6 +189,15 @@ function startMatch() {
   const riders = collectRiders();
   if (!riders) {
     alert('Wpisz co najmniej 1 zawodnika (max 2 na drużynę).');
+    return;
+  }
+  const visibleTracks = window.getVisibleTracks?.() || [];
+  if (!visibleTracks.length) {
+    alert('Dodaj tor w edytorze przed startem meczu.');
+    return;
+  }
+  if (!visibleTracks.some((t) => t.id === selectedTrackId)) {
+    alert('Wybierz tor przed startem meczu.');
     return;
   }
   setStartEnabled(false);

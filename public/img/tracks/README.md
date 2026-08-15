@@ -2,6 +2,10 @@
 
 Konfiguracja torów jest w **`public/tracks.json`** (jeden plik dla serwera i klienta).
 
+## Ukrywanie toru w menu gry
+
+Ustaw `"hidden": true` w wpisie toru w `tracks.json`. Tor nadal działa na serwerze (np. jako domyślny fallback), ale nie pojawia się w wyborze przed meczem.
+
 ## Nowy tor
 
 1. Dodaj zdjęcie stadionu (widok z góry) do `public/img/tracks/`, np. `torun.jpg`
@@ -9,7 +13,7 @@ Konfiguracja torów jest w **`public/tracks.json`** (jeden plik dla serwera i kl
    - **`geometry`** — wektor band i środka (centerX/Y, straightHalf, bendRadius, width)
    - **`visual`** — grafika, `showVectorLayer: true` do kalibracji
 
-## Kalibracja geometrii (Leszno itd.)
+## Kalibracja geometrii
 
 Włącz `showVectorLayer: true` w `visual` — na torze zobaczysz:
 - **czerwona linia** — zewnętrzna banda (upadek)

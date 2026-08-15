@@ -33,6 +33,23 @@ function applyCatalog(baseTracks, customTracks) {
   return window.TRACK_CATALOG;
 }
 
+function isTrackVisible(track) {
+  return track && !track.hidden;
+}
+
+function getVisibleTracks(catalog = window.TRACK_CATALOG) {
+  return (catalog || []).filter(isTrackVisible);
+}
+
+function getDefaultTrackId(catalog = window.TRACK_CATALOG) {
+  const visible = getVisibleTracks(catalog);
+  if (visible.length) return visible[0].id;
+  return 'classic';
+}
+
+window.getVisibleTracks = getVisibleTracks;
+window.getDefaultTrackId = getDefaultTrackId;
+
 window.loadTrackCatalog = function loadTrackCatalog() {
   return fetch('/tracks.json')
     .then((r) => r.json())
