@@ -259,6 +259,7 @@ socket.on('state', (state) => {
     }
   }
 
+  const wasRacing = gameState?.state === 'racing';
   gameState = state;
   syncTrackFromState(state);
   syncSpeedDialsFromState(state);
