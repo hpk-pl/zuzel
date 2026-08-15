@@ -428,7 +428,7 @@ class GameRoom {
     });
     for (const r of riders) r.input.turnLeft = false;
     this.state = 'countdown';
-    this.countdown = 3;
+    this.countdown = this.heatNumber === 1 ? 5 : 3;
     this.lastHeatResults = null;
   }
 
