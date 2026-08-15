@@ -5,6 +5,42 @@ const CODE_TO_SLOT = Object.fromEntries(
 const SLOT_LABELS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
+let selectedTrackId = 'classic';
+
+function initTrackPicker() {
+  const container = $('track-options');
+  if (!container || !window.TRACK_CATALOG) return;
+
+  container.innerHTML = window.TRACK_CATALOG.map((track) => `
+    <button type="button" class="track-card${track.id === selectedTrackId ? ' selected' : ''}" data-track-id="${track.id}">
+      <span class="track-card-preview" style="${track.preview ? `background-image:url('${track.preview}')` : ''}"></span>
+      <span class="track-card-name">${escapeHtml(track.name)}</span>
+      <span class="track-card-desc">${escapeHtml(track.description)}</span>
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.track-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      selectedTrackId = card.dataset.trackId;
+      container.querySelectorAll('.track-card').forEach((c) => c.classList.toggle('selected', c === card));
+      applyTrackVisual(selectedTrackId);
+    });
+  });
+
+  if (window.TrackRender?.preloadAllTracks) {
+    TrackRender.preloadAllTracks(window.TRACK_CATALOG);
+  }
+  applyTrackVisual(selectedTrackId);
+}
+
+function applyTrackVisual(trackId) {
+  const track = window.TRACK_BY_ID?.[trackId] || window.TRACK_BY_ID?.classic;
+  if (track && window.TrackRender?.setCurrentTrack) {
+    TrackRender.setCurrentTrack(track);
+    if (track.image) TrackRender.preloadTrackImage(track);
+  }
+}
+
 const socket = io({ reconnection: true });
 const canvas = document.getElementById('track-canvas');
 const ctx = canvas.getContext('2d');
@@ -110,6 +146,7 @@ function startMatch() {
     riders,
     teamA: $('team-a-name').value.trim(),
     teamB: $('team-b-name').value.trim(),
+    trackId: selectedTrackId,
   });
 }
 
@@ -206,6 +243,7 @@ socket.on('state', (state) => {
 
   const wasRacing = gameState?.state === 'racing';
   gameState = state;
+  if (state.trackId) applyTrackVisual(state.trackId);
   syncSpeedDialsFromState(state);
 
   if (state.state === 'racing' && wasRacing) {
@@ -297,6 +335,11 @@ function updateOverlay(state) {
 let lastSpeedHudKey = '';
 
 function updateHudRacing(state) {
+  const trackName = window.TRACK_BY_ID?.[state.trackId]?.name || '';
+  $('race-info').textContent = state.heatNumber
+    ? `Bieg ${state.heatNumber}/${state.totalHeats} · ${state.totalLaps} okr.${trackName ? ` · ${trackName}` : ''}`
+    : '';
+
   $('lap-board').innerHTML = (state.bikes || []).map((b) => {
     let st;
     if (b.fallen) st = 'UPADEK';
@@ -308,8 +351,9 @@ function updateHudRacing(state) {
 }
 
 function updateHud(state) {
+  const trackName = window.TRACK_BY_ID?.[state.trackId]?.name || '';
   $('race-info').textContent = state.heatNumber
-    ? `Bieg ${state.heatNumber}/${state.totalHeats} · ${state.totalLaps} okr.`
+    ? `Bieg ${state.heatNumber}/${state.totalHeats} · ${state.totalLaps} okr.${trackName ? ` · ${trackName}` : ''}`
     : '';
 
   $('lap-board').innerHTML = (state.bikes || []).map((b) => {
@@ -371,3 +415,4 @@ function escapeHtml(str) {
 }
 
 renderFrame();
+initTrackPicker();

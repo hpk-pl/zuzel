@@ -56,6 +56,12 @@
         </div>
       </div>
 
+      <div class="track-picker panel-inset">
+        <h3>Tor</h3>
+        <p class="setup-hint">Wybierz stadion przed startem meczu. Kolejne tory można dodawać w katalogu gry.</p>
+        <div id="track-options" class="track-options"></div>
+      </div>
+
       <div class="team-names-row">
         <label>Nazwa drużyny A <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
         <label>Nazwa drużyny B <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
@@ -99,7 +105,8 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/track-render.js?v=8"></script>
-  <script src="/js/client.js?v=8"></script>
+  <script src="/js/tracks-catalog.js?v=9"></script>
+  <script src="/js/track-render.js?v=9"></script>
+  <script src="/js/client.js?v=9"></script>
 </body>
 </html>
