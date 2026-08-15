@@ -22,9 +22,15 @@
   };
 
   let bgImage = null;
-  let bgImageSrc = null;
+  let bgObjectUrl = null;
+  let pendingImageFile = null;
+  let savedImageDataUrl = null;
+  let bgCache = null;
+  let bgCacheDirty = true;
   let dragHandle = null;
   let dragOffset = { x: 0, y: 0 };
+  let exportPreviewTimer = null;
+  let renderPending = false;
 
   const state = {
     id: 'custom-moj-tor',
@@ -104,12 +110,48 @@
     };
   }
 
-  function drawBackground() {
-    if (!$('show-bg').checked) {
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  function invalidateBgCache() {
+    bgCacheDirty = true;
+  }
+
+  function prepareBgImageSource(img) {
+    const maxDim = 1600;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (Math.max(iw, ih) <= maxDim) {
+      bgImage = img;
+      invalidateBgCache();
+      scheduleRender();
       return;
     }
+    const scale = maxDim / Math.max(iw, ih);
+    const w = Math.max(1, Math.round(iw * scale));
+    const h = Math.max(1, Math.round(ih * scale));
+    const off = document.createElement('canvas');
+    off.width = w;
+    off.height = h;
+    off.getContext('2d').drawImage(img, 0, 0, w, h);
+    bgImage = off;
+    invalidateBgCache();
+    scheduleRender();
+  }
+
+  function rebuildBgCache() {
+    if (!bgCache) {
+      bgCache = document.createElement('canvas');
+      bgCache.width = CANVAS_W;
+      bgCache.height = CANVAS_H;
+    }
+    const bctx = bgCache.getContext('2d');
+    bctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    if (!$('show-bg').checked) {
+      bctx.fillStyle = '#1a1a1a';
+      bctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      bgCacheDirty = false;
+      return;
+    }
+
     if (bgImage) {
       const iw = bgImage.naturalWidth || bgImage.width;
       const ih = bgImage.naturalHeight || bgImage.height;
@@ -118,15 +160,23 @@
       const drawH = ih * scale;
       const dx = (CANVAS_W - drawW) / 2;
       const dy = (CANVAS_H - drawH) / 2;
-      ctx.drawImage(bgImage, dx, dy, drawW, drawH);
+      bctx.drawImage(bgImage, dx, dy, drawW, drawH);
+      bgCacheDirty = false;
       return;
     }
-    ctx.fillStyle = '#3d3428';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Wgraj tło stadionu lub wybierz tor z katalogu', CANVAS_W / 2, CANVAS_H / 2);
+
+    bctx.fillStyle = '#3d3428';
+    bctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    bctx.fillStyle = 'rgba(255,255,255,0.15)';
+    bctx.font = '16px sans-serif';
+    bctx.textAlign = 'center';
+    bctx.fillText('Wgraj tło stadionu lub wybierz tor z katalogu', CANVAS_W / 2, CANVAS_H / 2);
+    bgCacheDirty = false;
+  }
+
+  function drawBackground() {
+    if (bgCacheDirty || !bgCache) rebuildBgCache();
+    ctx.drawImage(bgCache, 0, 0);
   }
 
   function drawOverlays() {
@@ -188,6 +238,15 @@
     drawBackground();
     drawOverlays();
     drawHandles();
+  }
+
+  function scheduleRender() {
+    if (renderPending) return;
+    renderPending = true;
+    requestAnimationFrame(() => {
+      renderPending = false;
+      render();
+    });
   }
 
   function canvasPoint(evt) {
@@ -292,8 +351,7 @@
     evt.preventDefault();
     const pt = canvasPoint(evt);
     applyDrag(dragHandle, pt.x - dragOffset.x, pt.y - dragOffset.y);
-    render();
-    updateExportPreview();
+    scheduleRender();
   }
 
   function onPointerUp(evt) {
@@ -301,9 +359,25 @@
     dragHandle = null;
     $('canvas-hint').textContent = 'Przeciągaj uchwyty: środek · boki prostej · góra/dół łuku · szerokość · linia mety';
     canvas.releasePointerCapture?.(evt.pointerId);
+    scheduleExportPreview();
   }
 
-  function buildTrackDefinition() {
+  function revokeBgObjectUrl() {
+    if (bgObjectUrl) {
+      URL.revokeObjectURL(bgObjectUrl);
+      bgObjectUrl = null;
+    }
+  }
+
+  function imagePreviewLabel() {
+    if (pendingImageFile) return `«${pendingImageFile.name} — dołączany przy zapisie»`;
+    if (savedImageDataUrl) return '«zapisane tło (JPEG)»';
+    if (state.image && !state.image.startsWith('data:')) return state.image;
+    if (state.image) return '«zapisane tło»';
+    return null;
+  }
+
+  function buildTrackDefinition({ includeImage = false } = {}) {
     const geo = { ...getGeo() };
     geo.totalLaps = parseInt($('param-laps').value, 10) || 4;
     geo.barrierMargin = parseFloat($('param-margin').value) || 6;
@@ -313,21 +387,68 @@
 
     const id = $('track-id').value.trim().replace(/\s+/g, '-').toLowerCase() || 'custom-moj-tor';
     const trackId = id.startsWith('custom-') ? id : `custom-${id}`;
+    const imageValue = includeImage
+      ? (savedImageDataUrl || state.image || null)
+      : imagePreviewLabel();
 
     return {
       id: trackId,
       name: $('track-name').value.trim() || 'Mój tor',
       description: $('track-desc').value.trim() || 'Tor skalibrowany w edytorze',
-      preview: state.image,
-      image: state.image,
+      preview: imageValue,
+      image: imageValue,
       geometry: geo,
       visual: { ...state.visual },
       custom: true,
     };
   }
 
+  function compressBgImage(quality = 0.82, maxDim = 1400) {
+    return new Promise((resolve, reject) => {
+      if (!bgImage) {
+        reject(new Error('Brak tła'));
+        return;
+      }
+      const source = bgImage;
+      const iw = source.naturalWidth || source.width;
+      const ih = source.naturalHeight || source.height;
+      const scale = Math.min(1, maxDim / Math.max(iw, ih));
+      const w = Math.max(1, Math.round(iw * scale));
+      const h = Math.max(1, Math.round(ih * scale));
+      const off = document.createElement('canvas');
+      off.width = w;
+      off.height = h;
+      off.getContext('2d').drawImage(source, 0, 0, w, h);
+      resolve(off.toDataURL('image/jpeg', quality));
+    });
+  }
+
+  async function buildTrackDefinitionForExport() {
+    const def = buildTrackDefinition({ includeImage: false });
+    if (bgImage) {
+      const dataUrl = await compressBgImage();
+      def.image = dataUrl;
+      def.preview = dataUrl;
+      savedImageDataUrl = dataUrl;
+      state.image = dataUrl;
+      pendingImageFile = null;
+    } else if (state.image) {
+      def.image = state.image;
+      def.preview = state.image;
+    }
+    return def;
+  }
+
   function updateExportPreview() {
-    exportArea.value = JSON.stringify(buildTrackDefinition(), null, 2);
+    exportArea.value = JSON.stringify(buildTrackDefinition({ includeImage: false }), null, 2);
+  }
+
+  function scheduleExportPreview() {
+    if (exportPreviewTimer) clearTimeout(exportPreviewTimer);
+    exportPreviewTimer = setTimeout(() => {
+      exportPreviewTimer = null;
+      updateExportPreview();
+    }, 120);
   }
 
   function loadTrackDefinition(track) {
@@ -349,24 +470,23 @@
     $('param-margin').value = state.geometry.barrierMargin ?? 6;
     $('param-spacing').value = state.geometry.startLaneSpacing ?? 23;
 
+    pendingImageFile = null;
+    savedImageDataUrl = state.image?.startsWith('data:') ? state.image : null;
+
     if (state.image) {
       loadBackgroundFromUrl(state.image);
     } else {
+      revokeBgObjectUrl();
       bgImage = null;
-      bgImageSrc = null;
+      invalidateBgCache();
     }
     updateExportPreview();
-    render();
+    scheduleRender();
   }
 
   function loadBackgroundFromUrl(url) {
     const img = new Image();
-    img.onload = () => {
-      bgImage = img;
-      bgImageSrc = url;
-      state.image = url.startsWith('data:') ? url : url;
-      render();
-    };
+    img.onload = () => prepareBgImageSource(img);
     img.onerror = () => setStatus('Nie udało się wczytać obrazu tła.', 'err');
     img.src = url;
   }
@@ -404,41 +524,53 @@
     $('bg-upload').addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        state.image = reader.result;
-        loadBackgroundFromUrl(reader.result);
-        state.visual.mode = 'image';
-        updateExportPreview();
-        setStatus('Wgrano tło. Dopasuj bandy do grafiki.', 'ok');
-      };
-      reader.readAsDataURL(file);
+      revokeBgObjectUrl();
+      pendingImageFile = file;
+      savedImageDataUrl = null;
+      bgObjectUrl = URL.createObjectURL(file);
+      setStatus('Wczytywanie tła…', '');
+      loadBackgroundFromUrl(bgObjectUrl);
+      state.visual.mode = 'image';
+      scheduleExportPreview();
+      setStatus(`Wgrano „${file.name}”. Dopasuj bandy do grafiki.`, 'ok');
     });
 
     ['show-bg', 'show-outer', 'show-inner', 'show-center', 'show-finish'].forEach((id) => {
-      $(id).addEventListener('change', render);
+      $(id).addEventListener('change', () => {
+        if (id === 'show-bg') invalidateBgCache();
+        scheduleRender();
+      });
     });
 
     ['track-id', 'track-name', 'track-desc', 'param-laps', 'param-margin', 'param-spacing'].forEach((id) => {
-      $(id).addEventListener('input', updateExportPreview);
+      $(id).addEventListener('input', scheduleExportPreview);
     });
 
     $('btn-reset-finish').addEventListener('click', () => {
       syncFinishToGeometry();
-      render();
-      updateExportPreview();
+      scheduleRender();
+      scheduleExportPreview();
       setStatus('Linia mety wyrównana do dolnej prostej.', 'ok');
     });
 
-    $('btn-save-game').addEventListener('click', () => {
-      const def = buildTrackDefinition();
-      saveCustomTrack(def);
-      setStatus(`Zapisano „${def.name}” — tor pojawi się w menu gry po odświeżeniu.`, 'ok');
+    $('btn-save-game').addEventListener('click', async () => {
+      setStatus('Zapisywanie toru…', '');
+      try {
+        const def = await buildTrackDefinitionForExport();
+        saveCustomTrack(def);
+        scheduleExportPreview();
+        setStatus(`Zapisano „${def.name}” — tor pojawi się w menu gry po odświeżeniu.`, 'ok');
+      } catch (err) {
+        setStatus(`Błąd zapisu: ${err.message}`, 'err');
+      }
     });
 
     $('btn-copy-json').addEventListener('click', async () => {
-      const json = exportArea.value || JSON.stringify(buildTrackDefinition(), null, 2);
+      setStatus('Przygotowywanie JSON…', '');
       try {
+        const def = await buildTrackDefinitionForExport();
+        const json = JSON.stringify(def, null, 2);
+        exportArea.value = json;
         await navigator.clipboard.writeText(json);
         setStatus('JSON skopiowany do schowka.', 'ok');
       } catch {
@@ -448,15 +580,21 @@
       }
     });
 
-    $('btn-download-json').addEventListener('click', () => {
-      const def = buildTrackDefinition();
-      const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `${def.id}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setStatus(`Pobrano ${def.id}.json`, 'ok');
+    $('btn-download-json').addEventListener('click', async () => {
+      setStatus('Przygotowywanie pliku…', '');
+      try {
+        const def = await buildTrackDefinitionForExport();
+        const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${def.id}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        scheduleExportPreview();
+        setStatus(`Pobrano ${def.id}.json`, 'ok');
+      } catch (err) {
+        setStatus(`Błąd eksportu: ${err.message}`, 'err');
+      }
     });
   }
 
@@ -483,7 +621,7 @@
     }
 
     updateExportPreview();
-    render();
+    scheduleRender();
   }
 
   init();
