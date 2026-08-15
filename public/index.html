@@ -85,12 +85,17 @@
     <div id="overlay" class="hidden">
       <div id="overlay-content"></div>
     </div>
+
+    <div id="reconnect-banner" class="reconnect-banner hidden" role="status">
+      <p id="reconnect-message">Połączenie zerwane</p>
+      <button type="button" class="btn primary btn-block" id="btn-reconnect">Połącz ponownie</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/track-geometry.js?v=22"></script>
   <script src="/js/tracks-catalog.js?v=22"></script>
   <script src="/js/track-render.js?v=22"></script>
-  <script src="/js/online-client.js?v=24"></script>
+  <script src="/js/online-client.js?v=25"></script>
 </body>
 </html>

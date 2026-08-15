@@ -118,6 +118,8 @@ class GameRoom {
     this.joinCode = null;
     /** @type {Map<string, {slot:number,name:string,team:string,color:string,speedPercent:number}>} */
     this.connections = new Map();
+    /** @type {Map<string, {slot,name,team,color,speedPercent,sessionId,wasHost}>} */
+    this.disconnectedSessions = new Map();
     this.hostId = null;
     this.clients = new Set();
     /** @type {Map<number, {slot, name, team, color, speedPercent, input}>} */
@@ -140,6 +142,8 @@ class GameRoom {
 
   setHost(socketId) {
     this.hostId = socketId;
+    const conn = this.connections.get(socketId);
+    if (conn) conn.wasHost = true;
   }
 
   addClient(socketId) {
@@ -148,19 +152,56 @@ class GameRoom {
   }
 
   removeClient(socketId) {
-    const slot = this.getSlotForSocket(socketId);
+    const conn = this.connections.get(socketId);
+    const slot = conn?.slot ?? null;
+    const wasHost = this.hostId === socketId;
     this.clients.delete(socketId);
+
     if (this.mode === 'online') {
-      this.connections.delete(socketId);
-      if (this.state === 'lobby' || this.state === 'match_finished') {
-        if (slot != null) this.riders.delete(slot);
-        this.syncRidersFromConnections();
+      const inMatch = ['countdown', 'racing', 'heat_results'].includes(this.state);
+      if (inMatch && conn?.sessionId) {
+        this.disconnectedSessions.set(conn.sessionId, {
+          slot: conn.slot,
+          name: conn.name,
+          team: conn.team,
+          color: conn.color,
+          speedPercent: conn.speedPercent,
+          sessionId: conn.sessionId,
+          wasHost,
+        });
+        this.connections.delete(socketId);
+        if (slot != null) {
+          const rider = this.riders.get(slot);
+          if (rider) rider.input.turnLeft = false;
+        }
+      } else {
+        this.connections.delete(socketId);
+        if (this.state === 'lobby' || this.state === 'match_finished') {
+          if (slot != null) this.riders.delete(slot);
+          this.syncRidersFromConnections();
+        }
       }
     }
-    if (this.hostId === socketId) {
+
+    if (wasHost) {
       const [nextHost] = this.clients;
       this.hostId = nextHost || null;
     }
+  }
+
+  getUsedSlots() {
+    const used = new Set();
+    for (const c of this.connections.values()) used.add(c.slot);
+    for (const c of this.disconnectedSessions.values()) used.add(c.slot);
+    return used;
+  }
+
+  getSlotForSession(sessionId) {
+    for (const c of this.connections.values()) {
+      if (c.sessionId === sessionId) return c.slot;
+    }
+    const reserved = this.disconnectedSessions.get(sessionId);
+    return reserved?.slot ?? null;
   }
 
   getSlotForSocket(socketId) {
@@ -172,21 +213,26 @@ class GameRoom {
     if (this.state !== 'lobby' && this.state !== 'match_finished') {
       return { ok: false, error: 'Mecz już trwa.' };
     }
-    if (this.connections.has(socketId)) return { ok: true, slot: this.connections.get(socketId).slot };
+    if (this.connections.has(socketId)) {
+      return { ok: true, slot: this.connections.get(socketId).slot };
+    }
 
-    if (this.connections.size >= 4) return { ok: false, error: 'Pokój pełny (max 4 graczy).' };
+    const activeCount = this.connections.size + this.disconnectedSessions.size;
+    if (activeCount >= 4) return { ok: false, error: 'Pokój pełny (max 4 graczy).' };
 
     const team = profile.team === 'B' ? 'B' : 'A';
-    const teamCount = [...this.connections.values()].filter((c) => c.team === team).length;
+    const teamCount = [...this.connections.values(), ...this.disconnectedSessions.values()]
+      .filter((c) => c.team === team).length;
     if (teamCount >= 2) return { ok: false, error: 'Max 2 graczy na drużynę.' };
 
-    const usedSlots = new Set([...this.connections.values()].map((c) => c.slot));
+    const usedSlots = this.getUsedSlots();
     let slot = -1;
     for (let i = 0; i < 4; i += 1) {
       if (!usedSlots.has(i)) { slot = i; break; }
     }
     if (slot < 0) return { ok: false, error: 'Brak wolnych slotów.' };
 
+    const sessionId = String(profile.sessionId || '').slice(0, 64) || null;
     const name = String(profile.name || '').trim().slice(0, 16) || `Zawodnik ${slot + 1}`;
     const conn = {
       slot,
@@ -194,10 +240,55 @@ class GameRoom {
       team,
       color: normalizeColor(profile.color, slot),
       speedPercent: 100,
+      sessionId,
+      wasHost: false,
     };
     this.connections.set(socketId, conn);
     this.syncRidersFromConnections();
-    return { ok: true, slot };
+    return { ok: true, slot, sessionId };
+  }
+
+  rejoinOnlinePlayer(socketId, { joinCode, sessionId } = {}) {
+    if (this.mode !== 'online') return { ok: false, error: 'To nie jest pokój online.' };
+    const sid = String(sessionId || '').slice(0, 64);
+    if (!sid) return { ok: false, error: 'Brak identyfikatora sesji.' };
+    if (String(joinCode || '').trim().toUpperCase() !== this.joinCode) {
+      return { ok: false, error: 'Nieprawidłowy kod pokoju.' };
+    }
+
+    const activeEntry = [...this.connections.entries()].find(([, c]) => c.sessionId === sid);
+    if (activeEntry) {
+      const [oldSocketId, active] = activeEntry;
+      if (oldSocketId !== socketId) {
+        this.clients.delete(oldSocketId);
+        this.connections.delete(oldSocketId);
+        this.connections.set(socketId, active);
+      }
+      if (active.wasHost) this.setHost(socketId);
+      return { ok: true, slot: active.slot, sessionId: sid, reconnected: true };
+    }
+
+    const reserved = this.disconnectedSessions.get(sid);
+    if (!reserved) {
+      const inMatch = ['countdown', 'racing', 'heat_results'].includes(this.state);
+      if (inMatch) {
+        return { ok: false, error: 'Sesja wygasła. Poczekaj na koniec biegu i dołącz ponownie z kodem.' };
+      }
+      return { ok: false, error: 'Nie znaleziono twojej sesji. Dołącz do pokoju kodem.' };
+    }
+
+    this.disconnectedSessions.delete(sid);
+    this.connections.set(socketId, {
+      slot: reserved.slot,
+      name: reserved.name,
+      team: reserved.team,
+      color: reserved.color,
+      speedPercent: reserved.speedPercent,
+      sessionId: sid,
+      wasHost: reserved.wasHost,
+    });
+    if (reserved.wasHost) this.setHost(socketId);
+    return { ok: true, slot: reserved.slot, sessionId: sid, reconnected: true };
   }
 
   updateOnlinePlayer(socketId, profile = {}) {
@@ -440,6 +531,7 @@ class GameRoom {
     this.heatNumber = 0;
     this.lastHeatResults = null;
     this.matchSummary = null;
+    this.disconnectedSessions.clear();
     this.setTrack(getDefaultTrackId());
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
@@ -449,6 +541,7 @@ class GameRoom {
 
   fullReset() {
     this.riders.clear();
+    this.disconnectedSessions.clear();
     this.reset();
     this.hostId = null;
     this.clients.clear();
@@ -457,16 +550,24 @@ class GameRoom {
   getState(forSocketId = null, { includeTrackImages = false } = {}) {
     const mySlot = forSocketId ? this.getSlotForSocket(forSocketId) : null;
     const lobbyPlayers = this.mode === 'online'
-      ? [...this.connections.entries()]
-        .map(([socketId, c]) => ({
+      ? [
+        ...[...this.connections.entries()].map(([socketId, c]) => ({
           socketId,
           slot: c.slot,
           name: c.name,
           team: c.team,
           color: c.color,
           connected: this.clients.has(socketId),
-        }))
-        .sort((a, b) => a.slot - b.slot)
+        })),
+        ...[...this.disconnectedSessions.values()].map((c) => ({
+          socketId: null,
+          slot: c.slot,
+          name: c.name,
+          team: c.team,
+          color: c.color,
+          connected: false,
+        })),
+      ].sort((a, b) => a.slot - b.slot)
       : null;
 
     return {
