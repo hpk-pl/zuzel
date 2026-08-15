@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { GameManager } = require('./game');
-const { isValidTrackId, registerCustomTrack } = require('./tracks-catalog');
+const { isValidTrackId, registerCustomTrack, reloadCatalog } = require('./tracks-catalog');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
@@ -39,6 +39,7 @@ io.on('connection', (socket) => {
   socket.emit('state', room.getState(socket.id));
 
   socket.on('start-match', ({ riders, teamA, teamB, trackId, trackDefinition }) => {
+    reloadCatalog();
     if (room.state !== 'lobby' && room.state !== 'match_finished') {
       socket.emit('error', { message: 'Mecz już trwa.' });
       return;
