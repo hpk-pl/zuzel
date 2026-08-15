@@ -1,9 +1,20 @@
-# Grafiki torów
+# Grafiki i geometria torów
 
-Umieść tutaj zdjęcia stadionów (widok z góry), np.:
+Konfiguracja torów jest w **`public/tracks.json`** (jeden plik dla serwera i klienta).
 
-- `leszno.jpg` — Stadion im. Alfreda Smoczyka w Lesznie
+## Nowy tor
 
-Nowy tor dodajesz w `public/js/tracks-catalog.js` (klient) oraz `server/tracks-catalog.js` (serwer).
+1. Dodaj zdjęcie stadionu (widok z góry) do `public/img/tracks/`, np. `torun.jpg`
+2. Skopiuj blok toru w `tracks.json` i ustaw:
+   - **`geometry`** — wektor band i środka (centerX/Y, straightHalf, bendRadius, width)
+   - **`visual`** — grafika, `showVectorLayer: true` do kalibracji
 
-Zalecany format: JPEG/WebP, proporcje ok. 10:7 (np. 1400×980 px).
+## Kalibracja geometrii (Leszno itd.)
+
+Włącz `showVectorLayer: true` w `visual` — na torze zobaczysz:
+- **czerwona linia** — zewnętrzna banda (upadek)
+- **zielona linia** — wewnętrzna krawędź (środek trawiasty)
+
+Dopasuj `centerX`, `centerY`, `straightHalf`, `bendRadius`, `width` aż linie pokryją się z grafiką.
+
+Canvas gry: **1000×700 px**.

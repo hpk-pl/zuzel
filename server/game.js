@@ -1,13 +1,5 @@
-const {
-  TRACK,
-  TOTAL_HEATS,
-  HEAT_POINTS,
-  distanceToCenterline,
-  bikeHitsBarrier,
-  getStartPositions,
-  getFinishT,
-} = require('./track');
-const { normalizeTrackId } = require('./tracks-catalog');
+const { TOTAL_HEATS, HEAT_POINTS } = require('./track');
+const { normalizeTrackId, getTrackEngine } = require('./tracks-catalog');
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
@@ -46,8 +38,7 @@ function bikesCollide(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y) < 16;
 }
 
-/** Ruch z pod-krokami — wykrywa bandę nawet przy dużej prędkości / lagu serwera */
-function advanceBike(bike) {
+function advanceBike(bike, trackEngine) {
   const dist = bike.speed;
   if (dist <= 0) return true;
 
@@ -59,7 +50,7 @@ function advanceBike(bike) {
   for (let i = 0; i < steps; i++) {
     bike.x += dx;
     bike.y += dy;
-    if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
+    if (trackEngine.bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
       bike.x -= dx;
       bike.y -= dy;
       return false;
@@ -68,25 +59,25 @@ function advanceBike(bike) {
   return true;
 }
 
-function pushBikeAway(bike, dx, dy, dist) {
+function pushBikeAway(bike, dx, dy, dist, trackEngine) {
   bike.x -= (dx / dist) * 2;
   bike.y -= (dy / dist) * 2;
-  if (bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
+  if (trackEngine.bikeHitsBarrier(bike.x, bike.y, bike.angle)) {
     bike.x += (dx / dist) * 2;
     bike.y += (dy / dist) * 2;
   }
 }
 
-function updateLap(bike, prevT, newT) {
+function updateLap(bike, prevT, newT, trackEngine) {
   if (bike.finished || bike.fallen) return;
-  const finishT = getFinishT();
+  const finishT = trackEngine.getFinishT();
   if (!bike.lapReady) {
     if (Math.abs(newT - finishT) > 0.05) bike.lapReady = true;
     return;
   }
   if (prevT < finishT && newT >= finishT && bike.speed > 1) {
     bike.lap += 1;
-    if (bike.lap >= TRACK.totalLaps) {
+    if (bike.lap >= trackEngine.geometry.totalLaps) {
       bike.finished = true;
       bike.finishTime = Date.now();
     }
@@ -132,6 +123,7 @@ class GameRoom {
     this.lastHeatResults = null;
     this.matchSummary = null;
     this.trackId = 'classic';
+    this.trackEngine = getTrackEngine('classic');
   }
 
   setHost(socketId) {
@@ -157,6 +149,11 @@ class GameRoom {
 
   canControl(socketId) {
     return this.hostId === socketId;
+  }
+
+  setTrack(trackId) {
+    this.trackId = normalizeTrackId(trackId);
+    this.trackEngine = getTrackEngine(this.trackId);
   }
 
   /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
@@ -214,7 +211,7 @@ class GameRoom {
 
   startHeat() {
     const riders = this.getRiderList();
-    const positions = getStartPositions(riders);
+    const positions = this.trackEngine.getStartPositions(riders);
     const posBySlot = Object.fromEntries(positions.map((p) => [p.slot, p]));
     this.bikes = riders.map((r) => {
       const pos = posBySlot[r.slot];
@@ -229,7 +226,7 @@ class GameRoom {
   startMatch(trackId) {
     if (this.riders.size < 1) return false;
     if (this.state !== 'lobby' && this.state !== 'match_finished') return false;
-    this.trackId = normalizeTrackId(trackId);
+    this.setTrack(trackId);
     this.heatNumber = 1;
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
@@ -254,7 +251,8 @@ class GameRoom {
   tickPhysics() {
     if (this.state !== 'racing') return;
 
-    const prevT = this.bikes.map((b) => distanceToCenterline(b.x, b.y).t);
+    const te = this.trackEngine;
+    const prevT = this.bikes.map((b) => te.distanceToCenterline(b.x, b.y).t);
 
     for (let i = 0; i < this.bikes.length; i++) {
       const bike = this.bikes[i];
@@ -266,15 +264,15 @@ class GameRoom {
       bike.speed = Math.min(speedCap, bike.speed + BIKE.acceleration);
       if (bike.turning) bike.angle -= BIKE.turnRate;
 
-      if (!advanceBike(bike)) {
+      if (!advanceBike(bike, te)) {
         bike.fallen = true;
         bike.fallTime = Date.now();
         bike.speed = 0;
         continue;
       }
 
-      const { t } = distanceToCenterline(bike.x, bike.y);
-      updateLap(bike, prevT[i], t);
+      const { t } = te.distanceToCenterline(bike.x, bike.y);
+      updateLap(bike, prevT[i], t, te);
     }
 
     for (let i = 0; i < this.bikes.length; i++) {
@@ -288,8 +286,8 @@ class GameRoom {
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.hypot(dx, dy) || 1;
-        pushBikeAway(a, dx, dy, dist);
-        pushBikeAway(b, -dx, -dy, dist);
+        pushBikeAway(a, dx, dy, dist, te);
+        pushBikeAway(b, -dx, -dy, dist, te);
       }
     }
 
@@ -331,7 +329,7 @@ class GameRoom {
     this.heatNumber = 0;
     this.lastHeatResults = null;
     this.matchSummary = null;
-    this.trackId = 'classic';
+    this.setTrack('classic');
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
     for (const r of this.riders.values()) r.input.turnLeft = false;
@@ -351,7 +349,7 @@ class GameRoom {
       isHost: forSocketId ? this.hostId === forSocketId : false,
       state: this.state,
       countdown: this.countdown,
-      totalLaps: TRACK.totalLaps,
+      totalLaps: this.trackEngine.geometry.totalLaps,
       totalHeats: TOTAL_HEATS,
       heatNumber: this.heatNumber,
       teamAName: this.teamAName,
