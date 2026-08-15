@@ -125,6 +125,7 @@ class GameRoom {
     this.trackId = 'classic';
     this.trackEngine = getTrackEngine('classic');
     this.trackDefinition = null;
+    this.trackBootstrapPending = false;
   }
 
   setHost(socketId) {
@@ -158,11 +159,19 @@ class GameRoom {
       this.trackId = trackDefinition.id;
       this.trackEngine = getTrackEngine(trackDefinition.id);
       this.trackDefinition = trackDefinition;
+      this.trackBootstrapPending = true;
       return;
     }
     this.trackId = normalizeTrackId(trackId);
     this.trackEngine = getTrackEngine(this.trackId);
     this.trackDefinition = null;
+    this.trackBootstrapPending = false;
+  }
+
+  consumeTrackBootstrap() {
+    const pending = this.trackBootstrapPending;
+    this.trackBootstrapPending = false;
+    return pending;
   }
 
   /** riders: [{ slot: 0-3, name, team }] — tylko wypełnione sloty */
@@ -351,7 +360,7 @@ class GameRoom {
     this.clients.clear();
   }
 
-  getState(forSocketId = null) {
+  getState(forSocketId = null, { includeTrackImages = false } = {}) {
     return {
       id: this.id,
       hostId: this.hostId,
@@ -368,7 +377,7 @@ class GameRoom {
       lastHeatResults: this.lastHeatResults,
       matchSummary: this.matchSummary,
       trackId: this.trackId,
-      trackDefinition: this.trackDefinition,
+      trackDefinition: includeTrackImages ? this.trackDefinition : null,
       canNextHeat: this.state === 'heat_results' && this.heatNumber < TOTAL_HEATS,
       players: this.getRiderList().map((p) => ({
         name: p.name,

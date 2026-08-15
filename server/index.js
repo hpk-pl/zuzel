@@ -19,9 +19,10 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
 
 function emitState(room) {
+  const includeTrackImages = room.consumeTrackBootstrap();
   for (const socketId of room.clients) {
     const socket = io.sockets.sockets.get(socketId);
-    if (socket) socket.emit('state', room.getState(socketId));
+    if (socket) socket.emit('state', room.getState(socketId, { includeTrackImages }));
   }
 }
 

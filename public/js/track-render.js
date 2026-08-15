@@ -18,6 +18,8 @@ const PALETTES = {
 let currentTrack = null;
 const imageCache = new Map();
 const imageReady = new Map();
+let bgLayerCache = null;
+let bgLayerTrackKey = null;
 
 function getGeometry(track) {
   const raw = track?.geometry || {
@@ -115,6 +117,37 @@ function drawVectorLayer(ctx, geo) {
   ctx.restore();
 }
 
+function invalidateBgLayer() {
+  bgLayerCache = null;
+  bgLayerTrackKey = null;
+}
+
+function buildBgLayer(canvasW, canvasH, track) {
+  const off = document.createElement('canvas');
+  off.width = canvasW;
+  off.height = canvasH;
+  const bctx = off.getContext('2d');
+  const visual = track?.visual || { mode: 'procedural', palette: 'classic' };
+  const geo = getGeometry(track);
+
+  if (visual.mode === 'image' && track?.image) {
+    const ready = imageReady.get(track.id);
+    if (ready?.ok && ready.image) {
+      drawImageTrack(bctx, canvasW, canvasH, ready.image);
+    } else {
+      drawProceduralTrack(bctx, canvasW, canvasH, track);
+    }
+  } else {
+    drawProceduralTrack(bctx, canvasW, canvasH, track);
+  }
+
+  if (visual.showFinishLine) {
+    drawFinishLine(bctx, geo, '#ffffff', visual.finishLineOpacity ?? 0.85);
+  }
+
+  return off;
+}
+
 function drawImageTrack(ctx, canvasW, canvasH, image) {
   const iw = image.naturalWidth || image.width;
   const ih = image.naturalHeight || image.height;
@@ -135,6 +168,7 @@ function preloadTrackImage(track) {
     img.onload = () => {
       const result = { image: img, ok: true };
       imageReady.set(track.id, result);
+      invalidateBgLayer();
       resolve(result);
     };
     img.onerror = () => {
@@ -153,6 +187,8 @@ function preloadAllTracks(catalog = []) {
 }
 
 function setCurrentTrack(track) {
+  const nextId = track?.id || null;
+  if (currentTrack?.id !== nextId) invalidateBgLayer();
   currentTrack = track || null;
 }
 
@@ -162,25 +198,20 @@ function getCurrentTrack() {
 
 function drawTrack(ctx, canvasW, canvasH) {
   const track = currentTrack;
+  if (!track) return;
+
   const visual = track?.visual || { mode: 'procedural', palette: 'classic' };
   const geo = getGeometry(track);
+  const layerKey = `${track.id}:${visual.showVectorLayer ? 1 : 0}`;
 
-  if (visual.mode === 'image' && track?.image) {
-    const ready = imageReady.get(track.id);
-    if (ready?.ok && ready.image) {
-      drawImageTrack(ctx, canvasW, canvasH, ready.image);
-      if (visual.showVectorLayer) drawVectorLayer(ctx, geo);
-      if (visual.showFinishLine) {
-        drawFinishLine(ctx, geo, '#ffffff', visual.finishLineOpacity ?? 0.85);
-      }
-      return;
-    }
-    drawProceduralTrack(ctx, canvasW, canvasH, track);
-    if (visual.showVectorLayer !== false) drawVectorLayer(ctx, geo);
-    return;
+  if (!bgLayerCache || bgLayerTrackKey !== layerKey) {
+    bgLayerCache = buildBgLayer(canvasW, canvasH, track);
+    bgLayerTrackKey = layerKey;
   }
 
-  drawProceduralTrack(ctx, canvasW, canvasH, track);
+  ctx.drawImage(bgLayerCache, 0, 0);
+
+  if (visual.showVectorLayer) drawVectorLayer(ctx, geo);
 }
 
 function drawTrails(ctx, bikes, trails) {
