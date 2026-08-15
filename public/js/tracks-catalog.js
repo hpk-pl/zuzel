@@ -41,8 +41,17 @@ window.getCustomTrackDefinition = function getCustomTrackDefinition(trackId) {
 
 window.registerRuntimeTrack = function registerRuntimeTrack(definition) {
   if (!definition?.id) return;
-  window.TRACK_BY_ID[definition.id] = definition;
+  const existing = window.TRACK_BY_ID?.[definition.id];
+  const merged = {
+    ...(existing || {}),
+    ...definition,
+    geometry: definition.geometry || existing?.geometry,
+    visual: { ...(existing?.visual || {}), ...(definition.visual || {}) },
+  };
+  if (!merged.image && existing?.image) merged.image = existing.image;
+  if (!merged.preview && existing?.preview) merged.preview = existing.preview;
+  window.TRACK_BY_ID[definition.id] = merged;
   const idx = window.TRACK_CATALOG.findIndex((t) => t.id === definition.id);
-  if (idx >= 0) window.TRACK_CATALOG[idx] = definition;
-  else window.TRACK_CATALOG.push(definition);
+  if (idx >= 0) window.TRACK_CATALOG[idx] = merged;
+  else window.TRACK_CATALOG.push(merged);
 };

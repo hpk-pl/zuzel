@@ -36,12 +36,24 @@ function initTrackPicker() {
   applyTrackVisual(selectedTrackId);
 }
 
+let activeVisualTrackId = null;
+
 function applyTrackVisual(trackId) {
   const track = window.TRACK_BY_ID?.[trackId] || window.TRACK_BY_ID?.classic;
-  if (track && window.TrackRender?.setCurrentTrack) {
-    TrackRender.setCurrentTrack(track);
-    if (track.image) TrackRender.preloadTrackImage(track);
-  }
+  if (!track || !window.TrackRender?.setCurrentTrack) return;
+  if (activeVisualTrackId === trackId && TrackRender.getCurrentTrack()?.id === trackId) return;
+  activeVisualTrackId = trackId;
+  const trackForGame = {
+    ...track,
+    visual: { ...track.visual, showVectorLayer: false },
+  };
+  TrackRender.setCurrentTrack(trackForGame);
+  if (track.image) TrackRender.preloadTrackImage(track);
+}
+
+function syncTrackFromState(state) {
+  if (state.trackDefinition) window.registerRuntimeTrack?.(state.trackDefinition);
+  if (state.trackId) applyTrackVisual(state.trackId);
 }
 
 const socket = io({ reconnection: true });
@@ -247,10 +259,8 @@ socket.on('state', (state) => {
     }
   }
 
-  const wasRacing = gameState?.state === 'racing';
   gameState = state;
-  if (state.trackDefinition) window.registerRuntimeTrack?.(state.trackDefinition);
-  if (state.trackId) applyTrackVisual(state.trackId);
+  syncTrackFromState(state);
   syncSpeedDialsFromState(state);
 
   if (state.state === 'racing' && wasRacing) {

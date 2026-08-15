@@ -428,7 +428,7 @@
       preview: imageValue,
       image: imageValue,
       geometry: geo,
-      visual: { ...state.visual },
+      visual: { ...state.visual, showVectorLayer: false },
       custom: true,
     };
   }

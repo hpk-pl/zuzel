@@ -41,6 +41,21 @@ function getTrackEngine(trackId) {
   return engineCache.get(id);
 }
 
+function isDataUrl(value) {
+  return typeof value === 'string' && value.startsWith('data:');
+}
+
+/** Usuwa ciężkie base64 z synchronizacji stanu (obraz zostaje u klienta). */
+function stripTrackForState(definition, { includeImages = false } = {}) {
+  if (!definition) return null;
+  if (includeImages) return definition;
+  return {
+    ...definition,
+    image: isDataUrl(definition.image) ? null : definition.image,
+    preview: isDataUrl(definition.preview) ? null : definition.preview,
+  };
+}
+
 module.exports = {
   TRACK_IDS,
   TRACK_META,
@@ -51,4 +66,5 @@ module.exports = {
   getTrackDefinition,
   getTrackGeometry,
   getTrackEngine,
+  stripTrackForState,
 };
