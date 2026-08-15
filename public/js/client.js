@@ -225,6 +225,7 @@ if (btnStart) {
 
 socket.on('connect', () => {
   socketConnected = true;
+  socket.emit('join-local');
   setStartEnabled(true);
 });
 

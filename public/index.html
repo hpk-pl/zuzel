@@ -2,102 +2,81 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Żużel — gra multiplayer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Żużel — gra online</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="mobile-app">
   <div id="app">
-    <header>
+    <header class="mobile-header">
       <h1>🏍️ Żużel</h1>
-      <p class="subtitle">Mecz 15 biegów · 2 drużyny · max 4 zawodników</p>
+      <p class="subtitle">Color Chainz Stadium · max 4 graczy</p>
     </header>
 
-    <div id="setup" class="panel">
-      <h2>Zawodnicy</h2>
-      <p class="setup-hint">Wpisz nicki zawodników (puste pole = brak zawodnika). Max 2 na drużynę. Kliknij pokrętło, aby ustawić limit prędkości.</p>
+    <!-- Ekran startowy -->
+    <section id="screen-landing" class="mobile-screen panel">
+      <button type="button" class="btn primary btn-block" id="btn-create-game">Stwórz grę</button>
+      <div class="join-divider">lub dołącz</div>
+      <label class="join-code-label">
+        Kod pokoju
+        <input type="text" id="join-code-input" class="join-code-input" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="np. A7K2M9">
+      </label>
+      <button type="button" class="btn btn-block" id="btn-join-game">Dołącz do gry</button>
+      <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
+    </section>
 
-      <div class="riders-grid" id="riders-grid">
-        <div class="rider-row" data-slot="0">
-          <span class="rider-key red"><kbd>L Ctrl</kbd></span>
-          <input type="text" class="rider-name" placeholder="Zawodnik 1 (opcjonalnie)" maxlength="16">
-          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
-          <div class="speed-dial" data-slot="0" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
-            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
-            <span class="speed-dial-label">100%</span>
-          </div>
+    <!-- Profil gracza -->
+    <section id="screen-profile" class="mobile-screen panel hidden">
+      <h2 id="profile-title">Twój zawodnik</h2>
+      <label>Nick <input type="text" id="profile-name" maxlength="16" placeholder="Twoje imię"></label>
+      <label>Drużyna
+        <select id="profile-team">
+          <option value="A">Drużyna A</option>
+          <option value="B">Drużyna B</option>
+        </select>
+      </label>
+      <fieldset class="color-picker-field">
+        <legend>Kolor</legend>
+        <div id="color-options" class="color-options"></div>
+      </fieldset>
+      <button type="button" class="btn primary btn-block" id="btn-profile-confirm">Wejdź do pokoju</button>
+      <button type="button" class="btn btn-block btn-ghost" id="btn-profile-back">Wróć</button>
+    </section>
+
+    <!-- Lobby -->
+    <section id="screen-lobby" class="mobile-screen panel hidden">
+      <div class="room-code-box">
+        <span class="room-code-label">Kod pokoju</span>
+        <div class="room-code-row">
+          <strong id="lobby-code" class="room-code-value">------</strong>
+          <button type="button" class="btn btn-small" id="btn-copy-code">Kopiuj</button>
         </div>
-        <div class="rider-row" data-slot="1">
-          <span class="rider-key blue"><kbd>V</kbd></span>
-          <input type="text" class="rider-name" placeholder="Zawodnik 2 (opcjonalnie)" maxlength="16">
-          <select class="rider-team"><option value="A">Drużyna A</option><option value="B">Drużyna B</option></select>
-          <div class="speed-dial" data-slot="1" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
-            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
-            <span class="speed-dial-label">100%</span>
-          </div>
-        </div>
-        <div class="rider-row" data-slot="2">
-          <span class="rider-key green"><kbd>R Ctrl</kbd></span>
-          <input type="text" class="rider-name" placeholder="Zawodnik 3 (opcjonalnie)" maxlength="16">
-          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
-          <div class="speed-dial" data-slot="2" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
-            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
-            <span class="speed-dial-label">100%</span>
-          </div>
-        </div>
-        <div class="rider-row" data-slot="3">
-          <span class="rider-key yellow"><kbd>Num 0</kbd></span>
-          <input type="text" class="rider-name" placeholder="Zawodnik 4 (opcjonalnie)" maxlength="16">
-          <select class="rider-team"><option value="A">Drużyna A</option><option value="B" selected>Drużyna B</option></select>
-          <div class="speed-dial" data-slot="3" data-level="3" title="Limit prędkości — kliknij, aby zmienić">
-            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
-            <span class="speed-dial-label">100%</span>
-          </div>
-        </div>
+        <p class="setup-hint">Podaj kod znajomym — każdy dołącza ze swojego telefonu.</p>
       </div>
-
-      <div class="track-picker panel-inset">
-        <h3>Tor</h3>
-        <p class="setup-hint">Wybierz stadion przed startem meczu. Własne tory kalibrujesz w <a href="/track-builder.html">edytorze torów</a>.</p>
-        <div id="track-options" class="track-options"></div>
+      <h3>Gracze <span id="lobby-count">0/4</span></h3>
+      <ul id="lobby-players" class="lobby-players"></ul>
+      <div id="lobby-host-actions" class="lobby-actions hidden">
+        <button type="button" class="btn primary btn-block" id="btn-start-match">Start meczu</button>
       </div>
+      <p id="lobby-wait" class="setup-hint">Czekaj na start meczu od hosta…</p>
+    </section>
 
-      <div class="team-names-row">
-        <label>Nazwa drużyny A <input type="text" id="team-a-name" value="Drużyna A" maxlength="24"></label>
-        <label>Nazwa drużyny B <input type="text" id="team-b-name" value="Drużyna B" maxlength="24"></label>
+    <!-- Gra -->
+    <section id="screen-game" class="mobile-screen hidden">
+      <div class="game-canvas-wrap">
+        <canvas id="track-canvas" width="1000" height="700"></canvas>
       </div>
-
-      <div id="teams-display"></div>
-      <div id="score-table" class="score-table hidden"></div>
-
-      <div class="lobby-actions">
-        <button id="btn-start" class="btn primary">Start meczu</button>
+      <div id="hud-mobile" class="hud-mobile">
+        <div id="race-info-mobile"></div>
+        <div id="my-status-mobile"></div>
+        <div id="score-mobile"></div>
       </div>
-    </div>
-
-    <div id="game-area" class="hidden">
-      <canvas id="track-canvas" width="1000" height="700"></canvas>
-      <div id="hud">
-        <div id="race-info"></div>
-        <div id="lap-board"></div>
-        <div id="score-board"></div>
+      <div class="touch-controls">
+        <button type="button" class="speed-btn" id="btn-speed" aria-label="Zmień limit prędkości">100%</button>
+        <button type="button" class="turn-btn" id="btn-turn">SKRĘĆ</button>
       </div>
-      <div id="speed-dials-hud" class="speed-dials-hud"></div>
-    </div>
-
-    <div id="controls-help" class="panel">
-      <h3>Sterowanie — skręt w lewo</h3>
-      <div class="control-grid">
-        <div class="control-item red"><kbd>L Ctrl</kbd> Slot 1 — Czerwony</div>
-        <div class="control-item blue"><kbd>V</kbd> Slot 2 — Niebieski</div>
-        <div class="control-item green"><kbd>R Ctrl</kbd> Slot 3 — Zielony</div>
-        <div class="control-item yellow"><kbd>Num 0</kbd> Slot 4 — Żółty</div>
-      </div>
-      <p class="rules">
-        Mecz żużlowy: 15 biegów po 4 okrążenia. Punktacja: 3-2-1-0 (upadek = u = 0 pkt).
-        Pokrętło prędkości: 70% · 80% · 90% · 100% maksymalnej prędkości (kliknij, aby przełączyć).
-      </p>
-    </div>
+    </section>
 
     <div id="overlay" class="hidden">
       <div id="overlay-content"></div>
@@ -105,9 +84,9 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/track-geometry.js?v=21"></script>
-  <script src="/js/tracks-catalog.js?v=21"></script>
-  <script src="/js/track-render.js?v=21"></script>
-  <script src="/js/client.js?v=21"></script>
+  <script src="/js/track-geometry.js?v=22"></script>
+  <script src="/js/tracks-catalog.js?v=22"></script>
+  <script src="/js/track-render.js?v=22"></script>
+  <script src="/js/online-client.js?v=22"></script>
 </body>
 </html>

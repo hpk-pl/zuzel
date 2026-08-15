@@ -3,6 +3,7 @@ const { normalizeTrackId, getTrackEngine, registerCustomTrack, getDefaultTrackId
 
 const SLOT_TEAMS = { 0: 'A', 1: 'A', 2: 'B', 3: 'B' };
 const PLAYER_COLORS = { 0: '#e63946', 1: '#457b9d', 2: '#2a9d8f', 3: '#e9c46a' };
+const PICKABLE_COLORS = ['#e63946', '#457b9d', '#2a9d8f', '#e9c46a'];
 const SLOT_KEYS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
 
@@ -105,9 +106,18 @@ function calcHeatPoints(bikes) {
   });
 }
 
+function normalizeColor(color, slot) {
+  if (typeof color === 'string' && PICKABLE_COLORS.includes(color)) return color;
+  return PLAYER_COLORS[slot] ?? PICKABLE_COLORS[0];
+}
+
 class GameRoom {
   constructor(roomId) {
     this.id = roomId;
+    this.mode = 'local';
+    this.joinCode = null;
+    /** @type {Map<string, {slot:number,name:string,team:string,color:string,speedPercent:number}>} */
+    this.connections = new Map();
     this.hostId = null;
     this.clients = new Set();
     /** @type {Map<number, {slot, name, team, color, speedPercent, input}>} */
@@ -138,11 +148,94 @@ class GameRoom {
   }
 
   removeClient(socketId) {
+    const slot = this.getSlotForSocket(socketId);
     this.clients.delete(socketId);
+    if (this.mode === 'online') {
+      this.connections.delete(socketId);
+      if (this.state === 'lobby' || this.state === 'match_finished') {
+        if (slot != null) this.riders.delete(slot);
+        this.syncRidersFromConnections();
+      }
+    }
     if (this.hostId === socketId) {
       const [nextHost] = this.clients;
       this.hostId = nextHost || null;
     }
+  }
+
+  getSlotForSocket(socketId) {
+    return this.connections.get(socketId)?.slot ?? null;
+  }
+
+  addOnlinePlayer(socketId, profile = {}) {
+    if (this.mode !== 'online') return { ok: false, error: 'To nie jest pokój online.' };
+    if (this.state !== 'lobby' && this.state !== 'match_finished') {
+      return { ok: false, error: 'Mecz już trwa.' };
+    }
+    if (this.connections.has(socketId)) return { ok: true, slot: this.connections.get(socketId).slot };
+
+    if (this.connections.size >= 4) return { ok: false, error: 'Pokój pełny (max 4 graczy).' };
+
+    const team = profile.team === 'B' ? 'B' : 'A';
+    const teamCount = [...this.connections.values()].filter((c) => c.team === team).length;
+    if (teamCount >= 2) return { ok: false, error: 'Max 2 graczy na drużynę.' };
+
+    const usedSlots = new Set([...this.connections.values()].map((c) => c.slot));
+    let slot = -1;
+    for (let i = 0; i < 4; i += 1) {
+      if (!usedSlots.has(i)) { slot = i; break; }
+    }
+    if (slot < 0) return { ok: false, error: 'Brak wolnych slotów.' };
+
+    const name = String(profile.name || '').trim().slice(0, 16) || `Zawodnik ${slot + 1}`;
+    const conn = {
+      slot,
+      name,
+      team,
+      color: normalizeColor(profile.color, slot),
+      speedPercent: 100,
+    };
+    this.connections.set(socketId, conn);
+    this.syncRidersFromConnections();
+    return { ok: true, slot };
+  }
+
+  updateOnlinePlayer(socketId, profile = {}) {
+    const conn = this.connections.get(socketId);
+    if (!conn) return { ok: false, error: 'Nie jesteś w pokoju.' };
+    if (this.state !== 'lobby' && this.state !== 'match_finished') {
+      return { ok: false, error: 'Nie można zmienić danych w trakcie meczu.' };
+    }
+
+    if (profile.name != null) {
+      conn.name = String(profile.name).trim().slice(0, 16) || conn.name;
+    }
+    if (profile.team === 'A' || profile.team === 'B') {
+      const otherTeamCount = [...this.connections.entries()]
+        .filter(([sid, c]) => sid !== socketId && c.team === profile.team).length;
+      if (otherTeamCount >= 2) return { ok: false, error: 'Max 2 graczy na drużynę.' };
+      conn.team = profile.team;
+    }
+    if (profile.color != null) conn.color = normalizeColor(profile.color, conn.slot);
+    this.syncRidersFromConnections();
+    return { ok: true };
+  }
+
+  syncRidersFromConnections() {
+    const riders = [...this.connections.values()].map((c) => ({
+      slot: c.slot,
+      name: c.name,
+      team: c.team,
+      color: c.color,
+      speedPercent: c.speedPercent,
+    }));
+    return this.setupRiders(riders, this.teamAName, this.teamBName);
+  }
+
+  startOnlineMatch() {
+    if (this.mode !== 'online') return false;
+    if (!this.syncRidersFromConnections()) return false;
+    return this.startMatch(getDefaultTrackId(), null);
   }
 
   hasClients() {
@@ -195,7 +288,7 @@ class GameRoom {
         slot: r.slot,
         name: r.name.slice(0, 16) || `Zawodnik ${r.slot + 1}`,
         team,
-        color: PLAYER_COLORS[r.slot],
+        color: r.color || PLAYER_COLORS[r.slot],
         speedPercent,
         input: { turnLeft: false },
       });
@@ -351,6 +444,7 @@ class GameRoom {
     this.scores = { 0: 0, 1: 0, 2: 0, 3: 0 };
     this.teamScores = { A: 0, B: 0 };
     for (const r of this.riders.values()) r.input.turnLeft = false;
+    if (this.mode === 'online') this.syncRidersFromConnections();
   }
 
   fullReset() {
@@ -361,8 +455,26 @@ class GameRoom {
   }
 
   getState(forSocketId = null, { includeTrackImages = false } = {}) {
+    const mySlot = forSocketId ? this.getSlotForSocket(forSocketId) : null;
+    const lobbyPlayers = this.mode === 'online'
+      ? [...this.connections.entries()]
+        .map(([socketId, c]) => ({
+          socketId,
+          slot: c.slot,
+          name: c.name,
+          team: c.team,
+          color: c.color,
+          connected: this.clients.has(socketId),
+        }))
+        .sort((a, b) => a.slot - b.slot)
+      : null;
+
     return {
       id: this.id,
+      mode: this.mode,
+      joinCode: this.joinCode,
+      mySlot,
+      lobbyPlayers,
       hostId: this.hostId,
       isHost: forSocketId ? this.hostId === forSocketId : false,
       state: this.state,
@@ -407,12 +519,50 @@ class GameRoom {
 }
 
 class GameManager {
-  constructor() { this.rooms = new Map(); }
+  constructor() {
+    this.rooms = new Map();
+    this.roomsByCode = new Map();
+  }
+
   getOrCreateRoom(id) {
     if (!this.rooms.has(id)) this.rooms.set(id, new GameRoom(id));
     return this.rooms.get(id);
   }
-  removeRoom(id) { this.rooms.delete(id); }
+
+  createOnlineRoom(hostSocketId) {
+    const { generateJoinCode } = require('./room-codes');
+    let code = '';
+    do { code = generateJoinCode(); } while (this.roomsByCode.has(code));
+    const id = `room-${code}`;
+    const room = new GameRoom(id);
+    room.mode = 'online';
+    room.joinCode = code;
+    room.addClient(hostSocketId);
+    room.setHost(hostSocketId);
+    this.rooms.set(id, room);
+    this.roomsByCode.set(code, id);
+    return room;
+  }
+
+  findRoomByCode(joinCode) {
+    const code = String(joinCode || '').trim().toUpperCase();
+    const id = this.roomsByCode.get(code);
+    return id ? this.rooms.get(id) : null;
+  }
+
+  removeRoom(id) {
+    const room = this.rooms.get(id);
+    if (room?.joinCode) this.roomsByCode.delete(room.joinCode);
+    this.rooms.delete(id);
+  }
 }
 
-module.exports = { GameManager, BIKE, PLAYER_COLORS, SLOT_KEYS, TOTAL_HEATS };
+module.exports = {
+  GameManager,
+  GameRoom,
+  BIKE,
+  PLAYER_COLORS,
+  PICKABLE_COLORS,
+  SLOT_KEYS,
+  TOTAL_HEATS,
+};
