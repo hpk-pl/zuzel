@@ -5,6 +5,9 @@ const { createTrackEngine } = require('./track-engine');
 const TRACKS = Object.fromEntries(catalog.tracks.map((t) => [t.id, t]));
 const TRACK_IDS = catalog.tracks.map((t) => t.id);
 const TRACK_META = Object.fromEntries(catalog.tracks.map((t) => [t.id, { name: t.name }]));
+const DEFAULT_TRACK_ID = catalog.tracks.find((t) => t.default && !t.hidden)?.id
+  || catalog.tracks.find((t) => !t.hidden)?.id
+  || 'classic';
 
 const customTracks = new Map();
 const engineCache = new Map();
@@ -14,7 +17,15 @@ function isValidTrackId(trackId) {
 }
 
 function normalizeTrackId(trackId) {
-  return isValidTrackId(trackId) ? trackId : 'classic';
+  return isValidTrackId(trackId) ? trackId : DEFAULT_TRACK_ID;
+}
+
+function getDefaultTrackId() {
+  return DEFAULT_TRACK_ID;
+}
+
+function isLockedTrackId(trackId) {
+  return Boolean(TRACKS[trackId]?.locked);
 }
 
 function registerCustomTrack(definition) {
@@ -60,8 +71,11 @@ module.exports = {
   TRACK_IDS,
   TRACK_META,
   TRACKS,
+  DEFAULT_TRACK_ID,
   isValidTrackId,
   normalizeTrackId,
+  getDefaultTrackId,
+  isLockedTrackId,
   registerCustomTrack,
   getTrackDefinition,
   getTrackGeometry,

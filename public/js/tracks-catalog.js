@@ -20,6 +20,8 @@ function writeCustomTracks(tracks) {
 function mergeCatalog(baseTracks, customTracks) {
   const byId = new Map(baseTracks.map((t) => [t.id, t]));
   for (const track of customTracks) {
+    const existing = byId.get(track.id);
+    if (existing?.locked) continue;
     byId.set(track.id, track);
   }
   return [...byId.values()];
@@ -43,18 +45,39 @@ function getVisibleTracks(catalog = window.TRACK_CATALOG) {
 
 function getDefaultTrackId(catalog = window.TRACK_CATALOG) {
   const visible = getVisibleTracks(catalog);
+  const marked = visible.find((t) => t.default);
+  if (marked) return marked.id;
   if (visible.length) return visible[0].id;
   return 'classic';
 }
 
+function pruneSupersededCustomTracks(baseTracks) {
+  const lockedIds = new Set(baseTracks.filter((t) => t.locked).map((t) => t.id));
+  const lockedNames = new Map(
+    baseTracks.filter((t) => t.locked).map((t) => [String(t.name || '').toLowerCase(), t.id])
+  );
+  const custom = readCustomTracks();
+  const kept = custom.filter((track) => {
+    if (lockedIds.has(track.id)) return false;
+    const officialId = lockedNames.get(String(track.name || '').toLowerCase());
+    if (!officialId) return true;
+    return track.id !== officialId && track.id !== `custom-${officialId}`;
+  });
+  if (kept.length !== custom.length) writeCustomTracks(kept);
+}
+
 window.getVisibleTracks = getVisibleTracks;
 window.getDefaultTrackId = getDefaultTrackId;
+window.isLockedTrack = function isLockedTrack(track) {
+  return Boolean(track?.locked);
+};
 
 window.loadTrackCatalog = function loadTrackCatalog() {
   return fetch('/tracks.json')
     .then((r) => r.json())
     .then((data) => {
       const base = data.tracks || [];
+      pruneSupersededCustomTracks(base);
       const custom = readCustomTracks();
       return applyCatalog(base, custom);
     });

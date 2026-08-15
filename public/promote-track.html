@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import toru oficjalnego — Żużel</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/track-builder.css">
+</head>
+<body>
+  <div class="builder-app" style="max-width: 720px; margin: 0 auto; padding: 1.5rem;">
+    <header class="builder-header">
+      <div>
+        <h1>🏟️ Tor oficjalny</h1>
+        <p>Pobierz eksport własnego toru z przeglądarki i zaimportuj go do repozytorium jako stadion wbudowany.</p>
+      </div>
+      <a href="/" class="btn">← Gra</a>
+    </header>
+
+    <section class="builder-section panel">
+      <h3>Tory w tej przeglądarce</h3>
+      <p class="builder-file-hint">Lista pochodzi z <code>localStorage</code> (klucz <code>zuzel-custom-tracks</code>). Otwórz tę stronę w tej samej przeglądarce, w której zapisałeś tor w edytorze.</p>
+      <div id="custom-track-list"></div>
+    </section>
+
+    <section class="builder-section panel">
+      <h3>Po pobraniu JSON</h3>
+      <pre id="import-command" class="import-command">node scripts/import-builtin-track.mjs ścieżka/do/eksportu.json --id color-chainz-stadium --default --locked</pre>
+      <p class="builder-file-hint">Uruchom powyższą komendę w katalogu projektu, zacommituj zmiany i wdróż na serwerze.</p>
+    </section>
+  </div>
+
+  <script src="/js/promote-track.js?v=20"></script>
+</body>
+</html>

@@ -354,6 +354,30 @@ kbd {
   letter-spacing: 0.04em;
 }
 
+.track-official-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #d2a8ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.promote-track-card {
+  margin-bottom: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.import-command {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .track-card-actions {
   display: flex;
   gap: 0.5rem;
