@@ -274,6 +274,72 @@ kbd {
   margin-bottom: 1rem;
 }
 
+.track-picker {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid #30363d;
+}
+
+.track-picker h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.track-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.track-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: 2px solid #30363d;
+  background: #161b22;
+  color: #e6edf3;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.track-card:hover {
+  border-color: #58a6ff;
+  transform: translateY(-1px);
+}
+
+.track-card.selected {
+  border-color: #2ea043;
+  box-shadow: 0 0 0 1px #2ea043;
+}
+
+.track-card-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7a5230 0%, #4a9e4f 45%, #d4b896 100%);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid #30363d;
+}
+
+.track-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.track-card-desc {
+  font-size: 0.75rem;
+  color: #8b949e;
+  line-height: 1.35;
+}
+
 .riders-grid {
   display: flex;
   flex-direction: column;
