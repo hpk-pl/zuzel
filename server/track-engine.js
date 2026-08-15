@@ -1,32 +1,10 @@
 const START_LANES = 4;
-
-function distToSegment(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len2 = dx * dx + dy * dy;
-  if (len2 === 0) return Math.hypot(px - x1, py - y1);
-  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
-}
-
-function distToArc(px, py, cx, cy, radius, angleStart, angleEnd) {
-  const ang = Math.atan2(py - cy, px - cx);
-  let a = ang;
-  while (a < angleStart) a += Math.PI * 2;
-  if (a > angleEnd && a - Math.PI * 2 >= angleStart) a -= Math.PI * 2;
-  if (a >= angleStart && a <= angleEnd) {
-    return Math.abs(Math.hypot(px - cx, py - cy) - radius);
-  }
-  const x1 = cx + Math.cos(angleStart) * radius;
-  const y1 = cy + Math.sin(angleStart) * radius;
-  const x2 = cx + Math.cos(angleEnd) * radius;
-  const y2 = cy + Math.sin(angleEnd) * radius;
-  return Math.min(
-    Math.hypot(px - x1, py - y1),
-    Math.hypot(px - x2, py - y2)
-  );
-}
+const {
+  normalizeGeometry,
+  distanceToStadiumPath,
+  isInsideStadium,
+  centerlinePointOnOval,
+} = require('./track-geometry');
 
 function shuffleArray(items) {
   const arr = [...items];
@@ -37,23 +15,14 @@ function shuffleArray(items) {
   return arr;
 }
 
-/** Fabryka silnika toru — osobna geometria (bandy, środek) per stadion */
+/** Fabryka silnika toru — osobne owale zewnętrzny / wewnętrzny + środek trasy */
 function createTrackEngine(geometry) {
-  const geo = {
-    centerX: geometry.centerX,
-    centerY: geometry.centerY,
-    straightHalf: geometry.straightHalf,
-    bendRadius: geometry.bendRadius,
-    width: geometry.width,
-    totalLaps: geometry.totalLaps ?? 4,
-    barrierMargin: geometry.barrierMargin ?? 6,
-    startLaneSpacing: geometry.startLaneSpacing ?? 23,
-    finishLine: geometry.finishLine || null,
-  };
+  const geo = normalizeGeometry(geometry);
 
   function trackLength() {
-    const straightLen = geo.straightHalf * 2;
-    return 2 * straightLen + 2 * Math.PI * geo.bendRadius;
+    const { straightHalf, bendRadius } = geo.centerline;
+    const straightLen = straightHalf * 2;
+    return 2 * straightLen + 2 * Math.PI * bendRadius;
   }
 
   function getFinishT() {
@@ -71,69 +40,16 @@ function createTrackEngine(geometry) {
       }
       return bestT;
     }
-    const straightLen = geo.straightHalf * 2;
+    const straightLen = geo.centerline.straightHalf * 2;
     return (straightLen / 2) / trackLength();
   }
 
   function centerlinePoint(t) {
-    const { centerX, centerY, straightHalf, bendRadius } = geo;
-    const straightLen = straightHalf * 2;
-    const bendArc = Math.PI * bendRadius;
-    const total = trackLength();
-
-    let d = ((t % 1) + 1) % 1;
-    d *= total;
-
-    const leftX = centerX - straightHalf;
-    const rightX = centerX + straightHalf;
-    const topY = centerY - bendRadius;
-    const botY = centerY + bendRadius;
-
-    if (d < straightLen) {
-      const f = d / straightLen;
-      return { x: leftX + f * straightLen, y: botY, angle: 0 };
-    }
-    d -= straightLen;
-
-    if (d < bendArc) {
-      const f = d / bendArc;
-      const a = Math.PI / 2 - f * Math.PI;
-      return {
-        x: rightX + Math.cos(a) * bendRadius,
-        y: centerY + Math.sin(a) * bendRadius,
-        angle: a - Math.PI / 2,
-      };
-    }
-    d -= bendArc;
-
-    if (d < straightLen) {
-      const f = d / straightLen;
-      return { x: rightX - f * straightLen, y: topY, angle: Math.PI };
-    }
-    d -= bendArc;
-
-    const f = d / bendArc;
-    const a = -Math.PI / 2 + f * Math.PI;
-    return {
-      x: leftX + Math.cos(a) * bendRadius,
-      y: centerY + Math.sin(a) * bendRadius,
-      angle: a - Math.PI / 2,
-    };
+    return centerlinePointOnOval(t, geo.centerline);
   }
 
   function distanceFromCenterline(x, y) {
-    const { centerX, centerY, straightHalf, bendRadius } = geo;
-    const leftX = centerX - straightHalf;
-    const rightX = centerX + straightHalf;
-    const topY = centerY - bendRadius;
-    const botY = centerY + bendRadius;
-
-    return Math.min(
-      distToSegment(x, y, leftX, botY, rightX, botY),
-      distToSegment(x, y, rightX, topY, leftX, topY),
-      distToArc(x, y, rightX, centerY, bendRadius, -Math.PI / 2, Math.PI / 2),
-      distToArc(x, y, leftX, centerY, bendRadius, Math.PI / 2, (3 * Math.PI) / 2),
-    );
+    return distanceToStadiumPath(x, y, geo.centerline);
   }
 
   function distanceToCenterline(x, y) {
@@ -150,7 +66,14 @@ function createTrackEngine(geometry) {
   }
 
   function hasHitBarrier(x, y) {
-    return distanceFromCenterline(x, y) > geo.width / 2 - geo.barrierMargin;
+    const m = geo.barrierMargin;
+    const inOuter = isInsideStadium(x, y, geo.outer);
+    const inInner = isInsideStadium(x, y, geo.inner);
+    if (!inOuter) return true;
+    if (inInner) return true;
+    if (distanceToStadiumPath(x, y, geo.outer) < m) return true;
+    if (distanceToStadiumPath(x, y, geo.inner) < m) return true;
+    return false;
   }
 
   function bikeHitsBarrier(x, y, angle) {

@@ -10,7 +10,7 @@
   const statusEl = document.getElementById('export-status');
   const exportArea = document.getElementById('export-json');
 
-  const defaults = {
+  const defaults = window.TrackGeometry.normalizeGeometry({
     centerX: 500,
     centerY: 350,
     straightHalf: 220,
@@ -19,7 +19,9 @@
     totalLaps: 4,
     barrierMargin: 6,
     startLaneSpacing: 23,
-  };
+  });
+
+  let editMode = 'outer';
 
   let bgImage = null;
   let bgObjectUrl = null;
@@ -37,7 +39,7 @@
     name: 'Mój tor',
     description: 'Tor skalibrowany w edytorze',
     image: null,
-    geometry: { ...defaults },
+    geometry: JSON.parse(JSON.stringify(defaults)),
     finishLine: null,
     visual: {
       mode: 'image',
@@ -55,62 +57,67 @@
     statusEl.className = `builder-status${type ? ` ${type}` : ''}`;
   }
 
+  const OVAL_COLORS = {
+    outer: { center: '#ff4646', side: '#ff9999', arc: '#ff7777' },
+    inner: { center: '#46dc6e', side: '#99eeaa', arc: '#77dd99' },
+    centerline: { center: '#58a6ff', side: '#99bbff', arc: '#77aaff' },
+  };
+
   function getGeo() {
     return state.geometry;
   }
 
   function defaultFinishLine(geo = getGeo()) {
-    const hw = geo.width / 2;
-    const botY = geo.centerY + geo.bendRadius;
-    return {
-      x1: geo.centerX,
-      y1: botY - hw,
-      x2: geo.centerX,
-      y2: botY + hw,
-    };
+    const cx = (geo.inner.centerX + geo.outer.centerX) / 2;
+    const y1 = geo.inner.centerY + geo.inner.bendRadius;
+    const y2 = geo.outer.centerY + geo.outer.bendRadius;
+    return { x1: cx, y1, x2: cx, y2 };
   }
 
   function getFinishLine() {
-    return state.finishLine || defaultFinishLine();
+    return state.finishLine || getGeo().finishLine || defaultFinishLine();
   }
 
   function syncFinishToGeometry() {
     state.finishLine = defaultFinishLine();
+    getGeo().finishLine = { ...state.finishLine };
   }
 
-  function traceStadium(ctx2d, halfWidth, side, geo) {
-    const { centerX, centerY, straightHalf, bendRadius } = geo;
-    const leftX = centerX - straightHalf;
-    const rightX = centerX + straightHalf;
-    const r = bendRadius + side * halfWidth;
-
-    ctx2d.moveTo(leftX, centerY - r);
-    ctx2d.lineTo(rightX, centerY - r);
-    ctx2d.arc(rightX, centerY, r, -Math.PI / 2, Math.PI / 2, false);
-    ctx2d.lineTo(leftX, centerY + r);
-    ctx2d.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, false);
+  function ovalHandles(oval, prefix, colors) {
+    return {
+      [`${prefix}-center`]: { x: oval.centerX, y: oval.centerY, color: colors.center, label: 'Środek' },
+      [`${prefix}-left`]: { x: oval.centerX - oval.straightHalf, y: oval.centerY, color: colors.side, label: 'Lewa prosta' },
+      [`${prefix}-right`]: { x: oval.centerX + oval.straightHalf, y: oval.centerY, color: colors.side, label: 'Prawa prosta' },
+      [`${prefix}-top`]: { x: oval.centerX, y: oval.centerY - oval.bendRadius, color: colors.arc, label: 'Góra łuku' },
+      [`${prefix}-bottom`]: { x: oval.centerX, y: oval.centerY + oval.bendRadius, color: colors.arc, label: 'Dół łuku' },
+    };
   }
 
   function getHandles() {
     const geo = getGeo();
-    const hw = geo.width / 2;
-    const botY = geo.centerY + geo.bendRadius;
     const finish = getFinishLine();
+    const handles = {};
 
-    return {
-      center: { x: geo.centerX, y: geo.centerY, color: '#58a6ff', label: 'Środek' },
-      left: { x: geo.centerX - geo.straightHalf, y: geo.centerY, color: '#d2a8ff', label: 'Lewa prosta' },
-      right: { x: geo.centerX + geo.straightHalf, y: geo.centerY, color: '#d2a8ff', label: 'Prawa prosta' },
-      top: { x: geo.centerX, y: geo.centerY - geo.bendRadius, color: '#ffa657', label: 'Góra łuku' },
-      bottom: { x: geo.centerX, y: geo.centerY + geo.bendRadius, color: '#ffa657', label: 'Dół łuku' },
-      outer: { x: geo.centerX, y: botY + hw, color: '#ff4646', label: 'Banda zewn.' },
-      inner: { x: geo.centerX, y: botY - hw, color: '#46dc6e', label: 'Banda wewn.' },
-      finishA: { x: finish.x1, y: finish.y1, color: '#ffffff', label: 'Meta A' },
-      finishB: { x: finish.x2, y: finish.y2, color: '#ffffff', label: 'Meta B' },
-    };
+    if (editMode === 'outer') Object.assign(handles, ovalHandles(geo.outer, 'outer', OVAL_COLORS.outer));
+    if (editMode === 'inner') Object.assign(handles, ovalHandles(geo.inner, 'inner', OVAL_COLORS.inner));
+    if (editMode === 'centerline') Object.assign(handles, ovalHandles(geo.centerline, 'centerline', OVAL_COLORS.centerline));
+    if (editMode === 'finish') {
+      handles['finishA'] = { x: finish.x1, y: finish.y1, color: '#ffffff', label: 'Meta A' };
+      handles['finishB'] = { x: finish.x2, y: finish.y2, color: '#ffffff', label: 'Meta B' };
+    }
+
+    return handles;
   }
 
-  function invalidateBgCache() {
+  function updateEditModeHint() {
+    const hints = {
+      outer: 'Tryb: banda zewnętrzna — przeciągaj czerwone uchwyty (środek · proste · łuki)',
+      inner: 'Tryb: banda wewnętrzna — przeciągaj zielone uchwyty (środek · proste · łuki)',
+      centerline: 'Tryb: środek trasy (fizyka) — przeciągaj niebieskie uchwyty',
+      finish: 'Tryb: linia start/meta — przeciągaj białe uchwyty',
+    };
+    $('canvas-hint').textContent = hints[editMode] || hints.outer;
+  }
     bgCacheDirty = true;
   }
 
@@ -181,12 +188,13 @@
 
   function drawOverlays() {
     const geo = getGeo();
+    const TG = window.TrackGeometry;
 
     if ($('show-outer').checked) {
       ctx.strokeStyle = 'rgba(255, 70, 70, 0.85)';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      traceStadium(ctx, geo.width / 2, 1, geo);
+      TG.traceStadiumOval(ctx, geo.outer);
       ctx.stroke();
     }
 
@@ -194,7 +202,7 @@
       ctx.strokeStyle = 'rgba(70, 220, 110, 0.85)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      traceStadium(ctx, geo.width / 2, -1, geo);
+      TG.traceStadiumOval(ctx, geo.inner);
       ctx.stroke();
     }
 
@@ -203,7 +211,7 @@
       ctx.lineWidth = 1;
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      traceStadium(ctx, 0, 1, geo);
+      TG.traceStadiumOval(ctx, geo.centerline);
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -280,57 +288,46 @@
   }
 
   function applyDrag(handle, x, y) {
+    if (handle === 'finishA' || handle === 'finishB') {
+      if (!state.finishLine) state.finishLine = { ...getFinishLine() };
+      if (handle === 'finishA') {
+        state.finishLine.x1 = clamp(x, 0, CANVAS_W);
+        state.finishLine.y1 = clamp(y, 0, CANVAS_H);
+      } else {
+        state.finishLine.x2 = clamp(x, 0, CANVAS_W);
+        state.finishLine.y2 = clamp(y, 0, CANVAS_H);
+      }
+      getGeo().finishLine = { ...state.finishLine };
+      return;
+    }
+
+    const dash = handle.indexOf('-');
+    if (dash === -1) return;
+    const ovalName = handle.slice(0, dash);
+    const part = handle.slice(dash + 1);
     const geo = getGeo();
+    const oval = geo[ovalName];
+    if (!oval) return;
 
-    if (handle === 'center') {
-      geo.centerX = clamp(x, 80, CANVAS_W - 80);
-      geo.centerY = clamp(y, 80, CANVAS_H - 80);
+    if (part === 'center') {
+      oval.centerX = clamp(x, 80, CANVAS_W - 80);
+      oval.centerY = clamp(y, 80, CANVAS_H - 80);
       return;
     }
-
-    if (handle === 'left') {
-      geo.straightHalf = clamp(geo.centerX - x, 40, 400);
+    if (part === 'left') {
+      oval.straightHalf = clamp(oval.centerX - x, 40, 400);
       return;
     }
-
-    if (handle === 'right') {
-      geo.straightHalf = clamp(x - geo.centerX, 40, 400);
+    if (part === 'right') {
+      oval.straightHalf = clamp(x - oval.centerX, 40, 400);
       return;
     }
-
-    if (handle === 'top') {
-      geo.bendRadius = clamp(geo.centerY - y, 40, 350);
+    if (part === 'top') {
+      oval.bendRadius = clamp(oval.centerY - y, 20, 350);
       return;
     }
-
-    if (handle === 'bottom') {
-      geo.bendRadius = clamp(y - geo.centerY, 40, 350);
-      return;
-    }
-
-    if (handle === 'outer') {
-      const botY = geo.centerY + geo.bendRadius;
-      geo.width = clamp((y - botY) * 2, 40, 400);
-      return;
-    }
-
-    if (handle === 'inner') {
-      const botY = geo.centerY + geo.bendRadius;
-      geo.width = clamp((botY - y) * 2, 40, 400);
-      return;
-    }
-
-    if (handle === 'finishA') {
-      if (!state.finishLine) state.finishLine = { ...getFinishLine() };
-      state.finishLine.x1 = clamp(x, 0, CANVAS_W);
-      state.finishLine.y1 = clamp(y, 0, CANVAS_H);
-      return;
-    }
-
-    if (handle === 'finishB') {
-      if (!state.finishLine) state.finishLine = { ...getFinishLine() };
-      state.finishLine.x2 = clamp(x, 0, CANVAS_W);
-      state.finishLine.y2 = clamp(y, 0, CANVAS_H);
+    if (part === 'bottom') {
+      oval.bendRadius = clamp(y - oval.centerY, 20, 350);
     }
   }
 
@@ -357,7 +354,7 @@
   function onPointerUp(evt) {
     if (!dragHandle) return;
     dragHandle = null;
-    $('canvas-hint').textContent = 'Przeciągaj uchwyty: środek · boki prostej · góra/dół łuku · szerokość · linia mety';
+    updateEditModeHint();
     canvas.releasePointerCapture?.(evt.pointerId);
     scheduleExportPreview();
   }
@@ -378,12 +375,17 @@
   }
 
   function buildTrackDefinition({ includeImage = false } = {}) {
-    const geo = { ...getGeo() };
+    const geo = JSON.parse(JSON.stringify(getGeo()));
     geo.totalLaps = parseInt($('param-laps').value, 10) || 4;
     geo.barrierMargin = parseFloat($('param-margin').value) || 6;
     geo.startLaneSpacing = parseFloat($('param-spacing').value) || 23;
     const fl = getFinishLine();
     geo.finishLine = { x1: Math.round(fl.x1), y1: Math.round(fl.y1), x2: Math.round(fl.x2), y2: Math.round(fl.y2) };
+    for (const key of ['outer', 'inner', 'centerline']) {
+      for (const prop of ['centerX', 'centerY', 'straightHalf', 'bendRadius']) {
+        geo[key][prop] = Math.round(geo[key][prop]);
+      }
+    }
 
     const id = $('track-id').value.trim().replace(/\s+/g, '-').toLowerCase() || 'custom-moj-tor';
     const trackId = id.startsWith('custom-') ? id : `custom-${id}`;
@@ -457,10 +459,8 @@
     state.name = track.name;
     state.description = track.description || '';
     state.image = track.image || track.preview || null;
-    state.geometry = { ...defaults, ...(track.geometry || {}) };
-    state.finishLine = track.geometry?.finishLine
-      ? { ...track.geometry.finishLine }
-      : defaultFinishLine();
+    state.geometry = window.TrackGeometry.normalizeGeometry(track.geometry || {});
+    state.finishLine = state.geometry.finishLine ? { ...state.geometry.finishLine } : null;
     state.visual = { ...state.visual, ...(track.visual || {}) };
 
     $('track-id').value = track.id.replace(/^custom-/, '');
@@ -550,7 +550,24 @@
       syncFinishToGeometry();
       scheduleRender();
       scheduleExportPreview();
-      setStatus('Linia mety wyrównana do dolnej prostej.', 'ok');
+      setStatus('Linia mety wyrównana między bandami.', 'ok');
+    });
+
+    $('btn-auto-centerline').addEventListener('click', () => {
+      const geo = getGeo();
+      geo.centerline = window.TrackGeometry.averageOval(geo.inner, geo.outer);
+      scheduleRender();
+      scheduleExportPreview();
+      setStatus('Środek trasy ustawiony między bandami.', 'ok');
+    });
+
+    document.querySelectorAll('input[name="edit-mode"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        if (!radio.checked) return;
+        editMode = radio.value;
+        updateEditModeHint();
+        scheduleRender();
+      });
     });
 
     $('btn-save-game').addEventListener('click', async () => {
@@ -601,6 +618,7 @@
   async function init() {
     bindUi();
     syncFinishToGeometry();
+    updateEditModeHint();
 
     let catalog = [];
     try {

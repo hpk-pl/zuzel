@@ -20,104 +20,96 @@ const imageCache = new Map();
 const imageReady = new Map();
 
 function getGeometry(track) {
-  return track?.geometry || {
+  const raw = track?.geometry || {
     centerX: 500,
     centerY: 350,
     straightHalf: 220,
     bendRadius: 130,
     width: 176,
   };
-}
-
-function traceStadium(ctx, halfWidth, side, geo) {
-  const { centerX, centerY, straightHalf, bendRadius } = geo;
-  const leftX = centerX - straightHalf;
-  const rightX = centerX + straightHalf;
-  const r = bendRadius + side * halfWidth;
-
-  ctx.moveTo(leftX, centerY - r);
-  ctx.lineTo(rightX, centerY - r);
-  ctx.arc(rightX, centerY, r, -Math.PI / 2, Math.PI / 2, false);
-  ctx.lineTo(leftX, centerY + r);
-  ctx.arc(leftX, centerY, r, Math.PI / 2, -Math.PI / 2, false);
+  return window.TrackGeometry?.normalizeGeometry(raw) || raw;
 }
 
 function drawProceduralTrack(ctx, canvasW, canvasH, track) {
   const geo = getGeometry(track);
   const paletteName = track?.visual?.palette || 'classic';
   const palette = PALETTES[paletteName] || PALETTES.classic;
-  const hw = geo.width / 2;
+  const TG = window.TrackGeometry;
 
   ctx.fillStyle = palette.background;
   ctx.fillRect(0, 0, canvasW, canvasH);
 
   ctx.fillStyle = palette.outer;
   ctx.beginPath();
-  traceStadium(ctx, hw, 1, geo);
-  traceStadium(ctx, hw, -1, geo);
+  TG.traceStadiumOval(ctx, geo.outer);
+  TG.traceStadiumOval(ctx, geo.inner);
   ctx.fill('evenodd');
 
   ctx.fillStyle = palette.infield;
   ctx.beginPath();
-  traceStadium(ctx, hw, -1, geo);
+  TG.traceStadiumOval(ctx, geo.inner);
   ctx.fill();
 
   ctx.strokeStyle = palette.line;
   ctx.lineWidth = 4;
   ctx.beginPath();
-  traceStadium(ctx, hw, 1, geo);
+  TG.traceStadiumOval(ctx, geo.outer);
   ctx.stroke();
 
   ctx.lineWidth = 3;
   ctx.beginPath();
-  traceStadium(ctx, hw, -1, geo);
+  TG.traceStadiumOval(ctx, geo.inner);
   ctx.stroke();
 
   drawFinishLine(ctx, geo, palette.finish, 1);
 }
 
+function defaultFinishLine(geo) {
+  const cx = (geo.inner.centerX + geo.outer.centerX) / 2;
+  const y1 = geo.inner.centerY + geo.inner.bendRadius;
+  const y2 = geo.outer.centerY + geo.outer.bendRadius;
+  return { x1: cx, y1, x2: cx, y2 };
+}
+
 function drawFinishLine(ctx, geo, color = '#ffffff', opacity = 1) {
-  const hw = geo.width / 2;
-  const botY = geo.centerY + geo.bendRadius;
-  const x1 = geo.finishLine?.x1 ?? geo.centerX;
-  const y1 = geo.finishLine?.y1 ?? botY - hw;
-  const x2 = geo.finishLine?.x2 ?? geo.centerX;
-  const y2 = geo.finishLine?.y2 ?? botY + hw;
+  const normalized = window.TrackGeometry?.normalizeGeometry(geo) || geo;
+  const fl = normalized.finishLine || defaultFinishLine(normalized);
   ctx.save();
   ctx.globalAlpha = opacity;
   ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.setLineDash([]);
   ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
+  ctx.moveTo(fl.x1, fl.y1);
+  ctx.lineTo(fl.x2, fl.y2);
   ctx.stroke();
   ctx.restore();
 }
 
-/** Warstwa wektorowa: zewnętrzna banda + wewnętrzna krawędź trasy */
+/** Warstwa wektorowa: zewnętrzna banda + wewnętrzna krawędź + środek trasy */
 function drawVectorLayer(ctx, geo) {
-  const hw = geo.width / 2;
+  const normalized = window.TrackGeometry?.normalizeGeometry(geo) || geo;
+  const TG = window.TrackGeometry;
   ctx.save();
 
   ctx.strokeStyle = 'rgba(255, 70, 70, 0.7)';
   ctx.lineWidth = 2.5;
   ctx.setLineDash([]);
   ctx.beginPath();
-  traceStadium(ctx, hw, 1, geo);
+  TG.traceStadiumOval(ctx, normalized.outer);
   ctx.stroke();
 
   ctx.strokeStyle = 'rgba(70, 220, 110, 0.75)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  traceStadium(ctx, hw, -1, geo);
+  TG.traceStadiumOval(ctx, normalized.inner);
   ctx.stroke();
 
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.lineWidth = 1;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
-  traceStadium(ctx, 0, 1, geo);
+  TG.traceStadiumOval(ctx, normalized.centerline);
   ctx.stroke();
 
   ctx.restore();
