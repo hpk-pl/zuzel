@@ -12,11 +12,14 @@ function initTrackPicker() {
   if (!container || !window.TRACK_CATALOG) return;
 
   container.innerHTML = window.TRACK_CATALOG.map((track) => `
-    <button type="button" class="track-card${track.id === selectedTrackId ? ' selected' : ''}" data-track-id="${track.id}">
-      <span class="track-card-preview" style="${track.preview ? `background-image:url('${track.preview}')` : ''}"></span>
-      <span class="track-card-name">${escapeHtml(track.name)}</span>
-      <span class="track-card-desc">${escapeHtml(track.description)}</span>
-    </button>
+    <div class="track-card-wrap">
+      <button type="button" class="track-card${track.id === selectedTrackId ? ' selected' : ''}" data-track-id="${track.id}">
+        <span class="track-card-preview" style="${track.preview || track.image ? `background-image:url('${track.preview || track.image}')` : ''}"></span>
+        <span class="track-card-name">${escapeHtml(track.name)}${track.custom ? ' <span class="track-custom-badge">własny</span>' : ''}</span>
+        <span class="track-card-desc">${escapeHtml(track.description)}</span>
+      </button>
+      ${track.custom ? `<a class="track-card-edit" href="/track-builder.html?edit=${encodeURIComponent(track.id)}">Edytuj tor</a>` : ''}
+    </div>
   `).join('');
 
   container.querySelectorAll('.track-card').forEach((card) => {
@@ -142,12 +145,15 @@ function startMatch() {
     return;
   }
   setStartEnabled(false);
-  socket.emit('start-match', {
+  const payload = {
     riders,
     teamA: $('team-a-name').value.trim(),
     teamB: $('team-b-name').value.trim(),
     trackId: selectedTrackId,
-  });
+  };
+  const customDef = window.getCustomTrackDefinition?.(selectedTrackId);
+  if (customDef?.custom) payload.trackDefinition = customDef;
+  socket.emit('start-match', payload);
 }
 
 const btnStart = $('btn-start');
@@ -243,6 +249,7 @@ socket.on('state', (state) => {
 
   const wasRacing = gameState?.state === 'racing';
   gameState = state;
+  if (state.trackDefinition) window.registerRuntimeTrack?.(state.trackDefinition);
   if (state.trackId) applyTrackVisual(state.trackId);
   syncSpeedDialsFromState(state);
 

@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { GameManager } = require('./game');
-const { isValidTrackId } = require('./tracks-catalog');
+const { isValidTrackId, registerCustomTrack } = require('./tracks-catalog');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
@@ -37,12 +37,18 @@ io.on('connection', (socket) => {
   socket.join('main');
   socket.emit('state', room.getState(socket.id));
 
-  socket.on('start-match', ({ riders, teamA, teamB, trackId }) => {
+  socket.on('start-match', ({ riders, teamA, teamB, trackId, trackDefinition }) => {
     if (room.state !== 'lobby' && room.state !== 'match_finished') {
       socket.emit('error', { message: 'Mecz już trwa.' });
       return;
     }
-    if (trackId && !isValidTrackId(trackId)) {
+    if (trackDefinition) {
+      if (!trackDefinition.id || !trackDefinition.geometry) {
+        socket.emit('error', { message: 'Nieprawidłowa definicja własnego toru.' });
+        return;
+      }
+      registerCustomTrack(trackDefinition);
+    } else if (trackId && !isValidTrackId(trackId)) {
       socket.emit('error', { message: 'Nieznany tor.' });
       return;
     }
@@ -50,7 +56,7 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Ustaw co najmniej 1 zawodnika (max 2 na drużynę).' });
       return;
     }
-    if (room.startMatch(trackId)) emitState(room);
+    if (room.startMatch(trackId, trackDefinition || null)) emitState(room);
     else socket.emit('error', { message: 'Nie można rozpocząć meczu.' });
   });
 

@@ -293,6 +293,12 @@ kbd {
   gap: 0.75rem;
 }
 
+.track-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .track-card {
   display: flex;
   flex-direction: column;
@@ -338,6 +344,29 @@ kbd {
   font-size: 0.75rem;
   color: #8b949e;
   line-height: 1.35;
+}
+
+.track-custom-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #3fb950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.track-card-edit {
+  font-size: 0.72rem;
+  text-align: center;
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+.track-card-edit:hover {
+  text-decoration: underline;
+}
+
+.setup-hint a {
+  color: #58a6ff;
 }
 
 .riders-grid {
