@@ -28,11 +28,20 @@ function mergeCatalog(baseTracks, customTracks) {
 }
 
 function applyCatalog(baseTracks, customTracks) {
-  window.TRACK_CATALOG = mergeCatalog(baseTracks, customTracks);
-  window.TRACK_BY_ID = Object.fromEntries(
-    window.TRACK_CATALOG.map((track) => [track.id, track])
-  );
+  const merged = mergeCatalog(baseTracks, customTracks).map(normalizeTrackAssets);
+  window.TRACK_CATALOG = merged;
+  window.TRACK_BY_ID = Object.fromEntries(merged.map((track) => [track.id, track]));
   return window.TRACK_CATALOG;
+}
+
+function normalizeTrackAssets(track) {
+  if (!track) return track;
+  const resolve = window.resolveAssetUrl;
+  if (typeof resolve !== 'function') return track;
+  const next = { ...track };
+  if (next.image) next.image = resolve(next.image);
+  if (next.preview) next.preview = resolve(next.preview);
+  return next;
 }
 
 function isTrackVisible(track) {

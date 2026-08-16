@@ -13,4 +13,12 @@
     const path = p.startsWith('/') ? p : `/${p}`;
     return `${base}${path}`;
   };
+
+  /** URL zasobu gry (obraz toru itd.) — uwzględnia BASE_PATH. */
+  window.resolveAssetUrl = function resolveAssetUrl(url) {
+    if (!url || typeof url !== 'string') return url;
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return window.appPath(url);
+    return window.appPath(`/${url}`);
+  };
 })();
