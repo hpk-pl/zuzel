@@ -183,7 +183,9 @@ function preloadTrackImage(track) {
       resolve(result);
     };
   });
-  img.src = track.image;
+  img.src = (typeof window.resolveAssetUrl === 'function'
+    ? window.resolveAssetUrl(track.image)
+    : track.image);
   imageCache.set(track.id, promise);
   return promise;
 }

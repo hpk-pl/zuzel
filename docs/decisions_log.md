@@ -209,3 +209,13 @@
 
 **Odrzucone na teraz:** Zmiana pixel art toru, podium końca meczu (osobny task).
 
+---
+
+## 2026-07 — Color Chainz Stadium znika pod /gry/zuzel/
+
+**Decyzja:** Ścieżki obrazów torów muszą przechodzić przez `resolveAssetUrl()` / `appPath()` — nie mogą być hardcoded od roota domeny.
+
+**Kontekst:** Po PlayClub (`BASE_PATH=/gry/zuzel`) przeglądarka ładowała `/img/tracks/color-chainz-stadium.jpg` z `playclub.pl/img/...` (404) zamiast `playclub.pl/gry/zuzel/img/...`. Grafika była w repo — zepsuły się URL-e, nie plik.
+
+**Konsekwencje:** `resolveAssetUrl` w `app-base.js`, normalizacja w `tracks-catalog.js`, `track-render.js`.
+
