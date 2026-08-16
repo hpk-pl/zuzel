@@ -189,6 +189,22 @@ input {
 }
 
 .heat-results { margin: 1rem 0; font-size: 1rem; line-height: 1.8; }
+.heat-time { font-family: ui-monospace, monospace; font-weight: 600; }
+.lb-badge {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
+}
+.lb-badge-personal {
+  background: rgba(210, 168, 255, 0.15);
+  color: #d2a8ff;
+}
 .heat-totals { font-size: 1.1rem; margin-top: 0.5rem; }
 .final-score { font-size: 1.3rem; margin: 0.5rem 0; }
 .hint { font-size: 0.85rem; color: #8b949e; margin-top: 0.5rem; }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Żużel — gra online</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css?v=25">
+  <link rel="stylesheet" href="/css/mobile.css?v=26">
 </head>
 <body class="mobile-app">
   <div id="app">
@@ -16,6 +16,13 @@
 
     <!-- Ekran startowy -->
     <section id="screen-landing" class="mobile-screen panel">
+      <section class="leaderboard-panel" id="leaderboard-panel" aria-labelledby="leaderboard-heading">
+        <h2 id="leaderboard-heading" class="leaderboard-heading">🏆 Top 20 — najszybsze biegi</h2>
+        <p id="leaderboard-subtitle" class="setup-hint leaderboard-subtitle">Color Chainz Stadium · 4 okrążenia</p>
+        <ol id="leaderboard-list" class="leaderboard-list">
+          <li class="leaderboard-empty">Ładowanie…</li>
+        </ol>
+      </section>
       <button type="button" class="btn primary btn-block" id="btn-create-game">Stwórz grę</button>
       <button type="button" class="btn btn-block" id="btn-go-join">Dołącz do gry</button>
       <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
@@ -133,6 +140,7 @@
   <script src="/js/tracks-catalog.js?v=22"></script>
   <script src="/js/track-render.js?v=22"></script>
   <script src="/js/player-colors.js"></script>
-  <script src="/js/online-client.js?v=29"></script>
+  <script src="/js/race-time.js"></script>
+  <script src="/js/online-client.js?v=30"></script>
 </body>
 </html>

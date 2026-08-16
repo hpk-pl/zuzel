@@ -1,6 +1,8 @@
 const { TOTAL_HEATS, HEAT_POINTS } = require('./track');
 const { normalizeTrackId, getTrackEngine, registerCustomTrack, getDefaultTrackId } = require('./tracks-catalog');
 const { PICKABLE_COLORS, PLAYER_COLORS } = require('./player-colors');
+const { calcFinisherTimeMs } = require('./race-time');
+const { submitHeatResults } = require('./leaderboard');
 
 const SLOT_KEYS = ['L Ctrl', 'V', 'R Ctrl', 'Num 0'];
 const SPEED_LEVELS = [70, 80, 90, 100];
@@ -83,23 +85,28 @@ function updateLap(bike, prevT, newT, trackEngine) {
   }
 }
 
-function calcHeatPoints(bikes) {
+function calcHeatPoints(bikes, { heatStartTime, riders } = {}) {
   const finishers = bikes
     .filter((b) => b.finished && b.finishTime)
     .sort((a, b) => a.finishTime - b.finishTime);
 
   return bikes.map((b) => {
     if (b.fallen) {
-      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u' };
+      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u', timeMs: null };
     }
     const idx = finishers.findIndex((f) => f.slot === b.slot);
     if (idx === -1) {
-      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u' };
+      return { slot: b.slot, name: b.name, color: b.color, points: 0, label: 'u', timeMs: null };
     }
+    const rider = riders?.get(b.slot);
     return {
-      slot: b.slot, name: b.name, color: b.color,
+      slot: b.slot,
+      name: b.name,
+      color: b.color,
       points: HEAT_POINTS[idx] ?? 0,
       label: String(idx + 1),
+      timeMs: calcFinisherTimeMs(b, heatStartTime),
+      speedPercent: rider?.speedPercent ?? 100,
     };
   });
 }
@@ -132,6 +139,7 @@ class GameRoom {
     this.teamScores = { A: 0, B: 0 };
     this.lastHeatResults = null;
     this.matchSummary = null;
+    this.heatStartTime = null;
     this.trackId = getDefaultTrackId();
     this.trackEngine = getTrackEngine(this.trackId);
     this.trackDefinition = null;
@@ -526,6 +534,7 @@ class GameRoom {
     this.state = 'countdown';
     this.countdown = this.heatNumber === 1 ? 5 : 3;
     this.lastHeatResults = null;
+    this.heatStartTime = null;
   }
 
   startMatch(trackId, trackDefinition = null) {
@@ -550,7 +559,10 @@ class GameRoom {
 
   tickCountdown() {
     this.countdown -= 1;
-    if (this.countdown <= 0) this.state = 'racing';
+    if (this.countdown <= 0) {
+      this.state = 'racing';
+      this.heatStartTime = Date.now();
+    }
   }
 
   tickPhysics() {
@@ -600,8 +612,18 @@ class GameRoom {
   }
 
   finishHeat() {
-    const results = calcHeatPoints(this.bikes);
-    this.lastHeatResults = results;
+    const results = calcHeatPoints(this.bikes, {
+      heatStartTime: this.heatStartTime,
+      riders: this.riders,
+    });
+    const leaderboardHits = submitHeatResults({
+      trackId: this.trackId,
+      results,
+    });
+    this.lastHeatResults = results.map((r) => ({
+      ...r,
+      leaderboard: leaderboardHits[r.slot] || null,
+    }));
 
     for (const r of results) {
       this.scores[r.slot] = (this.scores[r.slot] || 0) + r.points;
@@ -743,6 +765,7 @@ class GameRoom {
         finished: b.finished,
         fallen: b.fallen,
         turning: b.turning,
+        finishTimeMs: calcFinisherTimeMs(b, this.heatStartTime),
       })),
     };
   }
