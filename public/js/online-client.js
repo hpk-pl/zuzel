@@ -416,7 +416,7 @@
           ? PlayClubBridge.buildMatchEndOverlayHtml({
             summary: s,
             showRematch: !!state.isHost,
-            otherGameTag: 'button',
+            canStartNewGame: !!state.isHost,
           })
           : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
       }
@@ -639,11 +639,9 @@
   $('overlay-content').addEventListener('click', (e) => {
     window.PlayClubBridge?.handleOverlayClick(e);
     if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
-    if (e.target.id === 'overlay-reset') socket.emit('reset');
-    if (e.target.id === 'overlay-other-game' || e.target.id === 'overlay-menu') {
-      clearRoomSession();
-      location.href = window.PLAYCLUB_CONFIG?.homeUrl || '/';
-      return;
+    if (e.target.id === 'overlay-reset' || e.target.id === 'overlay-new-game') {
+      if (e.target.disabled) return;
+      socket.emit('reset');
     }
   });
 
