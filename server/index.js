@@ -80,6 +80,7 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: result.error });
       return;
     }
+    room.setHost(socket.id);
     socket.emit('room-ready', {
       joinCode: room.joinCode,
       roomId: room.id,
@@ -155,6 +156,53 @@ io.on('connection', (socket) => {
     emitState(room);
   });
 
+  socket.on('set-lobby-ready', ({ ready } = {}) => {
+    const room = getSocketRoom(socket);
+    if (!room || room.mode !== 'online') return;
+    const result = room.setLobbyReady(socket.id, !!ready);
+    if (!result.ok) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    emitState(room);
+  });
+
+  socket.on('set-team-names', ({ teamA, teamB } = {}) => {
+    const room = getSocketRoom(socket);
+    if (!room || room.mode !== 'online') return;
+    if (!denyUnlessHost(socket, room)) return;
+    const result = room.setTeamNames(socket.id, { teamA, teamB });
+    if (!result.ok) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    emitState(room);
+  });
+
+  socket.on('kick-player', ({ slot } = {}) => {
+    const room = getSocketRoom(socket);
+    if (!room || room.mode !== 'online') return;
+    if (!denyUnlessHost(socket, room)) return;
+    const result = room.kickPlayer(socket.id, slot);
+    if (!result.ok) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+    const target = io.sockets.sockets.get(result.targetSocketId);
+    if (target) {
+      target.emit('kicked', { message: 'Host wyrzucił cię z pokoju.' });
+      target.leave(room.id);
+      target.data.roomId = null;
+    }
+    emitState(room);
+  });
+
+  socket.on('leave-room', () => {
+    const room = leaveSocketRoom(socket);
+    socket.emit('room-left');
+    if (room) emitState(room);
+  });
+
   socket.on('start-match', ({ riders, teamA, teamB, trackId, trackDefinition } = {}) => {
     reloadCatalog();
     const room = getSocketRoom(socket);
@@ -170,7 +218,7 @@ io.on('connection', (socket) => {
     if (room.mode === 'online') {
       if (!denyUnlessHost(socket, room)) return;
       if (!room.startOnlineMatch()) {
-        socket.emit('error', { message: 'Ustaw co najmniej 1 gracza (max 2 na drużynę).' });
+        socket.emit('error', { message: 'Wszyscy gracze muszą być gotowi (drużyna, kolor, przycisk Gotowy).' });
         return;
       }
       emitState(room);

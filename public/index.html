@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Żużel — gra online</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css?v=23">
+  <link rel="stylesheet" href="/css/mobile.css?v=24">
 </head>
 <body class="mobile-app">
   <div id="app">
@@ -26,25 +26,15 @@
       <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
     </section>
 
-    <!-- Profil gracza -->
+    <!-- Krok 1: tylko nick -->
     <section id="screen-profile" class="mobile-screen panel hidden">
-      <h2 id="profile-title">Twój zawodnik</h2>
-      <label>Nick <input type="text" id="profile-name" maxlength="16" placeholder="Twoje imię"></label>
-      <label>Drużyna
-        <select id="profile-team">
-          <option value="A">Drużyna A</option>
-          <option value="B">Drużyna B</option>
-        </select>
-      </label>
-      <fieldset class="color-picker-field">
-        <legend>Kolor</legend>
-        <div id="color-options" class="color-options"></div>
-      </fieldset>
+      <h2 id="profile-title">Twój nick</h2>
+      <label>Nick <input type="text" id="profile-name" maxlength="16" placeholder="Twoje imię" autocomplete="nickname"></label>
       <button type="button" class="btn primary btn-block" id="btn-profile-confirm">Wejdź do pokoju</button>
       <button type="button" class="btn btn-block btn-ghost" id="btn-profile-back">Wróć</button>
     </section>
 
-    <!-- Lobby -->
+    <!-- Krok 2: pokój — kolor, drużyna, prędkość -->
     <section id="screen-lobby" class="mobile-screen panel hidden">
       <div class="room-code-box">
         <span class="room-code-label">Kod pokoju</span>
@@ -54,12 +44,47 @@
         </div>
         <p class="setup-hint">Podaj kod znajomym — każdy dołącza ze swojego telefonu.</p>
       </div>
-      <h3>Gracze <span id="lobby-count">0/4</span></h3>
+
+      <div id="lobby-host-teams" class="lobby-host-teams hidden">
+        <label>Nazwa drużyny A
+          <input type="text" id="lobby-team-a-name" maxlength="24" value="Drużyna A">
+        </label>
+        <label>Nazwa drużyny B
+          <input type="text" id="lobby-team-b-name" maxlength="24" value="Drużyna B">
+        </label>
+      </div>
+
+      <h3 class="lobby-players-heading">Gracze <span id="lobby-count">0/4</span></h3>
+      <p id="lobby-ready-status" class="setup-hint lobby-ready-status">Gotowi: 0/0</p>
       <ul id="lobby-players" class="lobby-players"></ul>
+
+      <div class="lobby-my-setup panel-inset">
+        <h3>Twój zawodnik</h3>
+        <fieldset class="color-picker-field">
+          <legend>Kolor motocykla</legend>
+          <div id="lobby-color-options" class="color-options"></div>
+        </fieldset>
+        <div class="lobby-team-picker">
+          <span class="lobby-field-label">Drużyna</span>
+          <div class="lobby-team-btns">
+            <button type="button" class="btn lobby-team-btn" id="btn-pick-team-a" data-team="A">Drużyna A</button>
+            <button type="button" class="btn lobby-team-btn" id="btn-pick-team-b" data-team="B">Drużyna B</button>
+          </div>
+        </div>
+        <div class="lobby-speed-picker">
+          <span class="lobby-field-label">Prędkość motocykla</span>
+          <button type="button" class="btn speed-btn lobby-speed-btn" id="btn-lobby-speed" aria-label="Zmień limit prędkości">100%</button>
+        </div>
+        <button type="button" class="btn primary btn-block" id="btn-lobby-ready">Gotowy!</button>
+      </div>
+
       <div id="lobby-host-actions" class="lobby-actions hidden">
         <button type="button" class="btn primary btn-block" id="btn-start-match">Start meczu</button>
+        <p id="lobby-start-hint" class="setup-hint">Wszyscy gracze muszą być gotowi.</p>
       </div>
-      <p id="lobby-wait" class="setup-hint">Czekaj na start meczu od hosta…</p>
+      <p id="lobby-wait" class="setup-hint">Wybierz kolor i drużynę, potem kliknij Gotowy!</p>
+
+      <button type="button" class="btn btn-block btn-ghost lobby-leave-btn" id="btn-leave-room">Opuść pokój</button>
     </section>
 
     <!-- Gra -->
@@ -97,6 +122,6 @@
   <script src="/js/tracks-catalog.js?v=22"></script>
   <script src="/js/track-render.js?v=22"></script>
   <script src="/js/player-colors.js"></script>
-  <script src="/js/online-client.js?v=27"></script>
+  <script src="/js/online-client.js?v=28"></script>
 </body>
 </html>

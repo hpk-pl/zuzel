@@ -443,9 +443,12 @@ function updateHud(state) {
       return `
         <div class="speed-dial-hud-row" style="border-left:3px solid ${b.color}">
           <span>${SLOT_LABELS[b.slot]} ${escapeHtml(b.name)}</span>
-          <div class="speed-dial" data-slot="${b.slot}" data-level="${dialLevel}" title="Limit prędkości">
-            <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
-            <span class="speed-dial-label">${b.speedPercent ?? 100}%</span>
+          <div class="speed-dial-wrap">
+            <span class="speed-dial-heading">Prędkość motora</span>
+            <div class="speed-dial" data-slot="${b.slot}" data-level="${dialLevel}" title="Limit prędkości">
+              <div class="speed-dial-face"><div class="speed-dial-knob"></div></div>
+              <span class="speed-dial-label">${b.speedPercent ?? 100}%</span>
+            </div>
           </div>
         </div>`;
     }).join('');
