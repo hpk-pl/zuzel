@@ -3,14 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Żużel — gra lokalna (PC)</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>Żużel — PlayClub (lokalnie)</title>
+  <script src="js/app-base.js"></script>
+  <link rel="stylesheet" href="css/playclub-tokens.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/playclub-game.css?v=1">
 </head>
 <body>
   <div id="app">
-    <header>
-      <h1>🏍️ Żużel</h1>
-      <p class="subtitle">Mecz 15 biegów · do 4 graczy na jednym komputerze · <a href="/">tryb online</a></p>
+    <header class="game-header">
+      <a href="/" class="game-brand-logo" id="link-playclub-logo" aria-label="PlayClub">
+        <span>PLAY</span><span class="pc-logo-icon" aria-hidden="true">▶</span><span>CLUB</span>
+      </a>
+      <p class="game-brand-title">Żużel</p>
+      <p class="subtitle">Mecz 15 biegów · do 4 graczy na jednym komputerze · <a href="index.html">tryb online</a></p>
     </header>
 
     <div id="setup" class="panel">
@@ -116,14 +122,20 @@
     </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/track-geometry.js?v=21"></script>
-  <script src="/js/tracks-catalog.js?v=21"></script>
-  <script src="/js/track-render.js?v=21"></script>
-  <script src="/js/race-time.js"></script>
-  <script src="/js/playclub-config.js"></script>
-  <script src="/js/playclub-analytics.js"></script>
-  <script src="/js/playclub-bridge.js"></script>
-  <script src="/js/client.js?v=23"></script>
+  <script src="socket.io/socket.io.js"></script>
+  <script src="js/track-geometry.js?v=21"></script>
+  <script src="js/tracks-catalog.js?v=23"></script>
+  <script src="js/track-render.js?v=21"></script>
+  <script src="js/race-time.js"></script>
+  <script src="js/playclub-config.js"></script>
+  <script src="js/playclub-analytics.js"></script>
+  <script src="js/playclub-bridge.js"></script>
+  <script src="js/client.js?v=23"></script>
+  <script>
+    (function () {
+      const logo = document.getElementById('link-playclub-logo');
+      if (logo) logo.href = window.__BASE_PATH__ ? '/' : 'https://playclub.pl/';
+    })();
+  </script>
 </body>
 </html>

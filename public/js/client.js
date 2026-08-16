@@ -91,7 +91,10 @@ function syncTrackFromState(state) {
   if (state.trackId) applyTrackVisual(state.trackId);
 }
 
-const socket = io({ reconnection: true });
+const socket = io({
+  path: (typeof window.appPath === 'function' ? window.appPath('/socket.io') : '/socket.io'),
+  reconnection: true,
+});
 const canvas = document.getElementById('track-canvas');
 const ctx = canvas.getContext('2d');
 

@@ -1,0 +1,291 @@
+/**
+ * PlayClub — skin UI gry Żużel (mobile + desktop).
+ * Ładować po style.css / mobile.css.
+ */
+
+body {
+  font-family: var(--pc-font-body);
+  background: var(--pc-black);
+  color: var(--pc-off-white);
+}
+
+a {
+  color: var(--pc-green);
+}
+
+.subtitle,
+.setup-hint,
+.hint,
+label,
+.join-divider,
+.room-list-status,
+.room-list-item-meta,
+.leaderboard-subtitle,
+.leaderboard-rank,
+.leaderboard-speed,
+.leaderboard-empty,
+.room-code-label,
+.color-picker-field legend,
+.lobby-field-label,
+.shop-bridge-powered,
+.rules {
+  color: var(--pc-muted);
+}
+
+.panel,
+.leaderboard-panel,
+.room-code-box,
+.lobby-my-setup,
+.panel-inset {
+  background: var(--pc-card);
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius);
+}
+
+input,
+select,
+.join-code-input {
+  background: var(--pc-black);
+  border: 1px solid var(--pc-border);
+  color: var(--pc-off-white);
+  border-radius: var(--pc-radius-sm);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--pc-green);
+  box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.2);
+}
+
+.btn {
+  font-family: var(--pc-font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-border);
+  background: var(--pc-card);
+  color: var(--pc-off-white);
+}
+
+.btn:hover {
+  background: var(--pc-card-hover);
+}
+
+.btn.primary {
+  background: var(--pc-green);
+  border-color: var(--pc-green);
+  color: var(--pc-black);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.btn.primary:hover {
+  filter: brightness(1.06);
+  background: var(--pc-green);
+}
+
+.btn-ghost {
+  border-color: var(--pc-border);
+  color: var(--pc-muted);
+}
+
+.btn.ready-on,
+#btn-lobby-ready.ready-active {
+  background: var(--pc-green);
+  border-color: var(--pc-green);
+  color: var(--pc-black);
+}
+
+.ready-badge,
+.lobby-players .ready-badge,
+.lb-badge {
+  background: rgba(57, 255, 20, 0.15);
+  color: var(--pc-green);
+}
+
+.leaderboard-time,
+.overlay-wait-host--host {
+  color: var(--pc-green);
+}
+
+.room-list-item {
+  background: var(--pc-card);
+  border-color: var(--pc-border);
+}
+
+.room-list-item:active {
+  background: rgba(57, 255, 20, 0.1);
+  border-color: rgba(57, 255, 20, 0.45);
+}
+
+.lobby-team-btn.selected {
+  border-color: var(--pc-green);
+  box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.3);
+}
+
+.turn-btn {
+  background: linear-gradient(180deg, var(--pc-green) 0%, var(--pc-green-dim) 100%);
+  color: var(--pc-black);
+  font-family: var(--pc-font-display);
+}
+
+.turn-btn:active,
+.turn-btn.turning {
+  filter: brightness(1.08);
+  transform: scale(0.98);
+}
+
+.speed-btn {
+  border-color: var(--pc-border);
+  background: var(--pc-card);
+  color: var(--pc-off-white);
+}
+
+.game-canvas-wrap {
+  background: var(--pc-black);
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius-sm);
+}
+
+#overlay-content {
+  background: var(--pc-card);
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+}
+
+#overlay-content .countdown {
+  color: var(--pc-yellow);
+  font-family: var(--pc-font-display);
+}
+
+#overlay-content .winner,
+.overlay-title {
+  font-family: var(--pc-font-display);
+  font-weight: 800;
+}
+
+.final-score {
+  font-family: var(--pc-font-display);
+  font-weight: 800;
+  color: var(--pc-off-white);
+}
+
+.shop-bridge-powered strong {
+  color: var(--pc-yellow);
+}
+
+.shop-bridge-cta {
+  color: var(--pc-green);
+  font-weight: 700;
+}
+
+.overlay-wait-host {
+  color: var(--pc-yellow);
+}
+
+.overlay-wait-host strong {
+  color: var(--pc-off-white);
+}
+
+.reconnect-banner {
+  background: rgba(13, 13, 13, 0.96);
+  border-top-color: var(--pc-border);
+}
+
+.reconnect-banner p {
+  color: var(--pc-yellow);
+}
+
+.track-card {
+  background: var(--pc-card);
+  border-color: var(--pc-border);
+  color: var(--pc-off-white);
+}
+
+.track-card.selected {
+  border-color: var(--pc-green);
+  box-shadow: 0 0 0 1px var(--pc-green);
+}
+
+.track-card:hover {
+  border-color: var(--pc-green);
+}
+
+.track-custom-badge {
+  color: var(--pc-green);
+}
+
+.setup-hint a,
+.track-card-edit {
+  color: var(--pc-blue);
+}
+
+/* Header gry */
+.game-header {
+  padding: 0.75rem 1rem 0.5rem;
+}
+
+.game-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  font-family: var(--pc-font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--pc-off-white);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.game-brand-logo:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+.game-brand-logo .pc-logo-icon {
+  color: var(--pc-green);
+  font-size: 0.85rem;
+}
+
+.game-brand-title {
+  margin: 0.35rem 0 0;
+  font-family: var(--pc-font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+}
+
+.mobile-header .subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+}
+
+header:not(.mobile-header) .game-brand-title {
+  font-size: 1.75rem;
+  margin-top: 0.5rem;
+}
+
+header:not(.mobile-header) .game-brand-logo {
+  font-size: 1.35rem;
+}
+
+.playclub-home-link {
+  color: var(--pc-green);
+  font-weight: 600;
+}
+
+#track-canvas {
+  border-color: var(--pc-border);
+}
+
+kbd {
+  background: var(--pc-card);
+  border-color: var(--pc-border);
+  color: var(--pc-off-white);
+}
+
+.overlay-actions .btn.primary {
+  text-transform: uppercase;
+}

@@ -1,0 +1,24 @@
+/**
+ * PlayClub design tokens — wspólne dla lobby i gier.
+ * Lobby: public/lobby/css/playclub.css (@import)
+ * Gra: css/playclub-tokens.css
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@800&display=swap');
+
+:root {
+  --pc-black: #0d0d0d;
+  --pc-off-white: #f0f0e8;
+  --pc-green: #39ff14;
+  --pc-green-dim: #2ecc12;
+  --pc-yellow: #ffe135;
+  --pc-blue: #00bfff;
+  --pc-muted: #8a8a80;
+  --pc-card: #161616;
+  --pc-card-hover: #1e1e1e;
+  --pc-border: #2a2a2a;
+  --pc-danger: #ff6b6b;
+  --pc-font-display: Poppins, Inter, system-ui, sans-serif;
+  --pc-font-body: Inter, system-ui, -apple-system, sans-serif;
+  --pc-radius: 12px;
+  --pc-radius-sm: 8px;
+}
