@@ -22,6 +22,7 @@
   let matchEndOverlayKey = null;
   let matchEndRecordedKey = null;
   let matchEndShowCta = false;
+  let rejoinInProgress = false;
   const trails = new Map();
 
   const SESSION_KEY = 'zuzel_player_session';
@@ -62,6 +63,20 @@
 
   function clearRoomSession() {
     try { localStorage.removeItem(ROOM_KEY); } catch { /* ignore */ }
+    pendingRejoinOnConnect = false;
+  }
+
+  function hasSavedRoomSession() {
+    const saved = loadRoomSession();
+    return !!(saved?.joinCode && saved?.sessionId);
+  }
+
+  /** Rejoin tylko po disconnect lub odświeżeniu strony — nie przy każdym connect. */
+  let pendingRejoinOnConnect = hasSavedRoomSession();
+
+  function hideOverlay() {
+    $('overlay').classList.add('hidden');
+    matchEndOverlayKey = null;
   }
 
   function showReconnectBanner(message = 'Połączenie zerwane — dotknij, aby wrócić do gry') {
@@ -270,13 +285,25 @@
     };
   }
 
-  function attemptRejoin() {
+  function isInActiveRoom() {
+    return !$('screen-lobby').classList.contains('hidden')
+      || !$('screen-game').classList.contains('hidden');
+  }
+
+  function isRejoinError(message) {
+    return /nie znaleziono|sesji wygasła|sesji\. dołącz/i.test(String(message || ''));
+  }
+
+  function attemptRejoin({ silent = false } = {}) {
     const saved = loadRoomSession();
     if (!saved?.joinCode || !saved?.sessionId) {
-      showReconnectBanner('Brak zapisanej gry — odśwież stronę i dołącz kodem');
+      if (isInActiveRoom()) {
+        showReconnectBanner('Brak zapisanej gry — wróć do menu i dołącz kodem');
+      }
       return;
     }
-    showReconnectBanner('Łączenie…');
+    rejoinInProgress = true;
+    if (!silent || isInActiveRoom()) showReconnectBanner('Łączenie…');
     socket.emit('rejoin-room', {
       joinCode: saved.joinCode,
       sessionId: saved.sessionId,
@@ -666,17 +693,23 @@
 
   $('btn-reconnect').addEventListener('click', () => attemptRejoin());
 
+  $('btn-reconnect-dismiss').addEventListener('click', () => {
+    rejoinInProgress = false;
+    clearRoomSession();
+    hideReconnectBanner();
+    showScreen('screen-landing');
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) setTurn(false);
   });
 
   socket.on('connect', () => {
-    hideReconnectBanner();
-    const saved = loadRoomSession();
-    if (saved?.joinCode && saved?.sessionId) {
-      attemptRejoin();
+    if (pendingRejoinOnConnect && hasSavedRoomSession()) {
+      attemptRejoin({ silent: !isInActiveRoom() });
       return;
     }
+    hideReconnectBanner();
     if (!$('screen-join').classList.contains('hidden')) requestRoomList();
   });
 
@@ -686,7 +719,9 @@
 
   socket.on('disconnect', () => {
     setTurn(false);
-    if (loadRoomSession()) {
+    pendingRejoinOnConnect = true;
+    if (rejoinInProgress) return;
+    if (hasSavedRoomSession() && isInActiveRoom()) {
       showReconnectBanner();
     }
   });
@@ -703,6 +738,8 @@
   });
 
   socket.on('room-ready', (data) => {
+    rejoinInProgress = false;
+    pendingRejoinOnConnect = false;
     joinCode = data.joinCode;
     mySlot = data.slot;
     const sid = data.sessionId || getOrCreatePlayerSessionId();
@@ -738,7 +775,19 @@
   });
 
   socket.on('error', ({ message }) => {
-    if (loadRoomSession()) showReconnectBanner(message);
+    rejoinInProgress = false;
+    if (isRejoinError(message)) {
+      pendingRejoinOnConnect = false;
+      clearRoomSession();
+      hideReconnectBanner();
+      hideOverlay();
+      if (isInActiveRoom()) {
+        showScreen('screen-landing');
+        alert(message);
+      }
+      return;
+    }
+    if (hasSavedRoomSession() && isInActiveRoom()) showReconnectBanner(message);
     else alert(message);
   });
 

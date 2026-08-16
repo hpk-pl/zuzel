@@ -52,9 +52,7 @@ function leaveSocketRoom(socket) {
   socket.leave(room.id);
   socket.data.roomId = null;
   if (!room.hasClients()) {
-    const keepAlive = room.mode === 'online'
-      && room.disconnectedSessions.size > 0
-      && room.state !== 'lobby';
+    const keepAlive = room.mode === 'online' && room.disconnectedSessions.size > 0;
     if (!keepAlive) {
       room.fullReset();
       gameManager.removeRoom(room.id);
