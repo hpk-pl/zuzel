@@ -242,7 +242,10 @@ socket.on('connect_error', () => {
 $('overlay-content').addEventListener('click', (e) => {
   window.PlayClubBridge?.handleOverlayClick(e);
   if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
-  if (e.target.id === 'overlay-reset') socket.emit('reset');
+  if (e.target.id === 'overlay-reset' || e.target.id === 'overlay-new-game') {
+    if (e.target.disabled) return;
+    socket.emit('reset');
+  }
 });
 
 function releaseAllInputs() {
@@ -401,8 +404,8 @@ function updateOverlay(state) {
             teamB: { name: s.teamB.name, points: s.teamB.points },
           },
           showRematch: true,
+          canStartNewGame: true,
           playersHtml,
-          otherGameTag: 'a',
         })
         : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
     }

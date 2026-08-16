@@ -75,16 +75,20 @@
     return `🏆 ${escapeHtml(name || 'Wygrana!')}`;
   }
 
-  function buildMatchEndOverlayHtml({ summary, showRematch, playersHtml = '', otherGameTag = 'button' }) {
+  function buildMatchEndOverlayHtml({ summary, showRematch, canStartNewGame = true, playersHtml = '' }) {
     const showCta = shouldShowCtaOnNextMatchEnd();
     const s = summary;
     const winText = buildWinText(s);
     const rematchBtn = showRematch
       ? '<button type="button" id="overlay-reset" class="btn primary overlay-btn">Rewanż</button>'
       : '';
-    const otherGame = otherGameTag === 'a'
-      ? `<a href="${cfg().homeUrl || '/'}" id="overlay-other-game" class="btn overlay-btn">Inna gra</a>`
-      : '<button type="button" id="overlay-other-game" class="btn overlay-btn">Inna gra</button>';
+    const newGameAttrs = canStartNewGame
+      ? ''
+      : ' disabled title="Tylko host może rozpocząć nową grę"';
+    const newGameBtn = `<button type="button" id="overlay-new-game" class="btn overlay-btn"${newGameAttrs}>Nowa gra</button>`;
+    const waitHint = !canStartNewGame
+      ? '<p class="setup-hint overlay-wait-host">Poproś hosta o nową grę.</p>'
+      : '';
     recordMatchEnd(showCta);
     window.PlayClubAnalytics?.trackGameComplete({
       winner: s.winner,
@@ -98,8 +102,9 @@
       ${playersHtml}
       <div class="overlay-actions">
         ${rematchBtn}
-        ${otherGame}
+        ${newGameBtn}
       </div>
+      ${waitHint}
       ${getBridgeHtml(showCta)}`;
   }
 
@@ -107,11 +112,8 @@
     if (e.target.id === 'overlay-shop-link') {
       window.PlayClubAnalytics?.trackColorChainzClick();
     }
-    if (e.target.id === 'overlay-reset') {
+    if (e.target.id === 'overlay-reset' || e.target.id === 'overlay-new-game') {
       window.PlayClubAnalytics?.trackRematchClick();
-    }
-    if (e.target.id === 'overlay-other-game' || e.target.id === 'overlay-menu') {
-      window.PlayClubAnalytics?.trackOtherGameClick();
     }
   }
 

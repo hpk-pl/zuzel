@@ -233,6 +233,11 @@
   text-decoration: underline;
 }
 
+.overlay-wait-host {
+  margin: 0.75rem 0 0;
+  text-align: center;
+}
+
 .color-picker-field {
   border: none;
   margin: 1rem 0;
