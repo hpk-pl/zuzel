@@ -4,14 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Żużel — gra online</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css?v=27">
+  <script src="js/app-base.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/mobile.css?v=28">
 </head>
 <body class="mobile-app">
   <div id="app">
     <header class="mobile-header">
+      <a href="/" id="link-playclub-home" class="playclub-home-link hidden" aria-label="Wróć do PlayClub">← PlayClub</a>
       <h1>🏍️ Żużel</h1>
-      <p class="subtitle">Color Chainz Stadium · max 4 graczy</p>
+      <p class="subtitle">Color Chainz Stadium · do 4 graczy</p>
     </header>
 
     <!-- Ekran startowy -->
@@ -25,7 +27,7 @@
       </section>
       <button type="button" class="btn primary btn-block" id="btn-create-game">Stwórz grę</button>
       <button type="button" class="btn btn-block" id="btn-go-join">Dołącz do gry</button>
-      <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
+      <p class="setup-hint mobile-footer-hint"><a href="local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
     </section>
 
     <!-- Dołącz: lista gier lub kod -->
@@ -136,15 +138,21 @@
     </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/track-geometry.js?v=22"></script>
-  <script src="/js/tracks-catalog.js?v=22"></script>
-  <script src="/js/track-render.js?v=22"></script>
-  <script src="/js/player-colors.js"></script>
-  <script src="/js/race-time.js"></script>
-  <script src="/js/playclub-config.js"></script>
-  <script src="/js/playclub-analytics.js"></script>
-  <script src="/js/playclub-bridge.js"></script>
-  <script src="/js/online-client.js?v=35"></script>
+  <script src="socket.io/socket.io.js"></script>
+  <script src="js/track-geometry.js?v=22"></script>
+  <script src="js/tracks-catalog.js?v=23"></script>
+  <script src="js/track-render.js?v=22"></script>
+  <script src="js/player-colors.js"></script>
+  <script src="js/race-time.js"></script>
+  <script src="js/playclub-config.js"></script>
+  <script src="js/playclub-analytics.js"></script>
+  <script src="js/playclub-bridge.js"></script>
+  <script src="js/online-client.js?v=36"></script>
+  <script>
+    if (window.__BASE_PATH__) {
+      const home = document.getElementById('link-playclub-home');
+      if (home) home.classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 /** Konfiguracja PlayClub — most do sklepu, UTM, limity CTA. */
 window.PLAYCLUB_CONFIG = {
   game: 'zuzel',
+  /** Lobby platformy (playclub.pl). Gra może być pod /gry/zuzel/. */
   homeUrl: '/',
   shop: {
     baseUrl: 'https://colorchainz.pl/kategoria/zuzel',

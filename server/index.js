@@ -6,22 +6,28 @@ const { GameManager } = require('./game');
 const { isValidTrackId, registerCustomTrack, reloadCatalog, getDefaultTrackId, TRACK_META } = require('./tracks-catalog');
 const { getTopEntries } = require('./leaderboard');
 const { recordEvent } = require('./analytics');
+const { BASE_PATH, publicDir, lobbyDir, gamePath } = require('./config');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
 const COUNTDOWN_TICK = 60;
 const RACING_EMIT_EVERY = 3;
+const SOCKET_PATH = gamePath('/socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { path: SOCKET_PATH, cors: { origin: '*' } });
 const gameManager = new GameManager();
 
-app.use(express.json({ limit: '8kb' }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
-app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
+const gameApp = express.Router();
+gameApp.use(express.json({ limit: '8kb' }));
+gameApp.use(express.static(publicDir));
 
-app.post('/api/events', (req, res) => {
+gameApp.get('/health', (_req, res) => {
+  res.json({ status: 'ok', rooms: gameManager.rooms.size, basePath: BASE_PATH || '/' });
+});
+
+gameApp.post('/api/events', (req, res) => {
   const { event, props } = req.body || {};
   if (!recordEvent({ event, props })) {
     res.status(400).json({ ok: false, error: 'Unknown event' });
@@ -30,7 +36,7 @@ app.post('/api/events', (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/leaderboard', (req, res) => {
+gameApp.get('/api/leaderboard', (req, res) => {
   const trackId = isValidTrackId(req.query.track) ? req.query.track : getDefaultTrackId();
   const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
   res.json({
@@ -39,6 +45,13 @@ app.get('/api/leaderboard', (req, res) => {
     entries: getTopEntries(trackId, limit),
   });
 });
+
+if (BASE_PATH) {
+  app.use(BASE_PATH, gameApp);
+  app.use('/', express.static(lobbyDir));
+} else {
+  app.use(gameApp);
+}
 
 function getSocketRoom(socket) {
   const roomId = socket.data?.roomId;
@@ -329,4 +342,7 @@ setInterval(() => {
   }
 }, 1000 / TICK_RATE);
 
-server.listen(PORT, () => console.log(`Żużel — serwer gry na porcie ${PORT}`));
+server.listen(PORT, () => {
+  const mode = BASE_PATH ? `PlayClub lobby + gra pod ${BASE_PATH}` : 'Żużel (root)';
+  console.log(`${mode} — port ${PORT}, socket ${SOCKET_PATH}`);
+});

@@ -1,0 +1,18 @@
+[Unit]
+Description=PlayClub platform (playclub.pl) — lobby + żużel pod /gry/zuzel/
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/projects/zuzel
+Environment=NODE_ENV=production
+Environment=PORT=3081
+Environment=BASE_PATH=/gry/zuzel
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

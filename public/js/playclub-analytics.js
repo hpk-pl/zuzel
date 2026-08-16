@@ -14,14 +14,15 @@
   }
 
   function sendEvent(event, props = {}) {
+    const apiUrl = (typeof window.appPath === 'function' ? window.appPath('/api/events') : '/api/events');
     const payload = { event, props: { ...baseProps(), ...props } };
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        if (navigator.sendBeacon('/api/events', blob)) return;
+        if (navigator.sendBeacon(apiUrl, blob)) return;
       } catch { /* fallback */ }
     }
-    fetch('/api/events', {
+    fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -88,7 +88,10 @@
     $('reconnect-banner').classList.add('hidden');
   }
 
-  const socket = io({ reconnection: true });
+  const socket = io({
+    path: (typeof window.appPath === 'function' ? window.appPath('/socket.io') : '/socket.io'),
+    reconnection: true,
+  });
   const canvas = document.getElementById('track-canvas');
   const ctx = canvas.getContext('2d');
 
@@ -109,7 +112,8 @@
     if (!list) return;
     try {
       const trackId = window.getDefaultTrackId?.() || 'color-chainz-stadium';
-      const res = await fetch(`/api/leaderboard?track=${encodeURIComponent(trackId)}&limit=20`);
+      const apiUrl = (typeof window.appPath === 'function' ? window.appPath('/api/leaderboard') : '/api/leaderboard');
+      const res = await fetch(`${apiUrl}?track=${encodeURIComponent(trackId)}&limit=20`);
       const data = await res.json();
       if (subtitle && data.trackName) {
         subtitle.textContent = `${data.trackName} · 4 okrążenia`;
