@@ -61,6 +61,20 @@
 
   function clearRoomSession() {
     try { localStorage.removeItem(ROOM_KEY); } catch { /* ignore */ }
+    pendingRejoinOnConnect = false;
+  }
+
+  function hasSavedRoomSession() {
+    const saved = loadRoomSession();
+    return !!(saved?.joinCode && saved?.sessionId);
+  }
+
+  /** Rejoin tylko po disconnect lub odświeżeniu strony — nie przy każdym connect. */
+  let pendingRejoinOnConnect = hasSavedRoomSession();
+
+  function hideOverlay() {
+    $('overlay').classList.add('hidden');
+    matchEndOverlayKey = null;
   }
 
   function showReconnectBanner(message = 'Połączenie zerwane — dotknij, aby wrócić do gry') {
