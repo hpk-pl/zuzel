@@ -21,6 +21,51 @@
         "palette": "classic",
         "showVectorLayer": false
       }
+    },
+    {
+      "id": "color-chainz-stadium",
+      "name": "Color chainz stadium",
+      "description": "Stadion Color Chainz",
+      "preview": "/img/tracks/color-chainz-stadium.jpg",
+      "image": "/img/tracks/color-chainz-stadium.jpg",
+      "geometry": {
+        "outer": {
+          "centerX": 499,
+          "centerY": 352,
+          "straightHalf": 172,
+          "bendRadius": 204
+        },
+        "inner": {
+          "centerX": 501,
+          "centerY": 350,
+          "straightHalf": 109,
+          "bendRadius": 82
+        },
+        "centerline": {
+          "centerX": 498,
+          "centerY": 356,
+          "straightHalf": 141,
+          "bendRadius": 144
+        },
+        "finishLine": {
+          "x1": 497,
+          "y1": 432,
+          "x2": 498,
+          "y2": 557
+        },
+        "totalLaps": 4,
+        "barrierMargin": 6,
+        "startLaneSpacing": 23
+      },
+      "visual": {
+        "mode": "image",
+        "fit": "cover",
+        "showVectorLayer": false,
+        "showFinishLine": true,
+        "finishLineOpacity": 0.85
+      },
+      "default": true,
+      "locked": true
     }
   ]
 }
