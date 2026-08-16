@@ -69,6 +69,10 @@ io.on('connection', (socket) => {
     socket.emit('state', room.getState(socket.id));
   });
 
+  socket.on('list-rooms', () => {
+    socket.emit('room-list', { rooms: gameManager.listPublicRooms() });
+  });
+
   socket.on('create-room', (profile = {}) => {
     reloadCatalog();
     leaveSocketRoom(socket);

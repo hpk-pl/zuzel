@@ -651,6 +651,26 @@ class GameRoom {
     this.clients.clear();
   }
 
+  getPublicListing() {
+    if (this.mode !== 'online' || !this.joinCode) return null;
+    if (!['lobby', 'match_finished'].includes(this.state)) return null;
+
+    const playerCount = this.connections.size + this.disconnectedSessions.size;
+    if (playerCount >= 4) return null;
+
+    const hostConn = this.hostId ? this.connections.get(this.hostId) : null;
+    const hostName = hostConn?.name?.trim() || 'Host';
+
+    return {
+      joinCode: this.joinCode,
+      hostName,
+      players: playerCount,
+      maxPlayers: 4,
+      teamAName: this.teamAName,
+      teamBName: this.teamBName,
+    };
+  }
+
   getState(forSocketId = null, { includeTrackImages = false } = {}) {
     const mySlot = forSocketId ? this.getSlotForSocket(forSocketId) : null;
     const lobbyPlayers = this.mode === 'online'
@@ -764,6 +784,16 @@ class GameManager {
     const room = this.rooms.get(id);
     if (room?.joinCode) this.roomsByCode.delete(room.joinCode);
     this.rooms.delete(id);
+  }
+
+  listPublicRooms() {
+    const rooms = [];
+    for (const room of this.rooms.values()) {
+      const listing = room.getPublicListing();
+      if (listing) rooms.push(listing);
+    }
+    rooms.sort((a, b) => a.hostName.localeCompare(b.hostName, 'pl'));
+    return rooms;
   }
 }
 

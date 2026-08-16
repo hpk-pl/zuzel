@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Żużel — gra online</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/mobile.css?v=24">
+  <link rel="stylesheet" href="/css/mobile.css?v=25">
 </head>
 <body class="mobile-app">
   <div id="app">
@@ -17,13 +17,24 @@
     <!-- Ekran startowy -->
     <section id="screen-landing" class="mobile-screen panel">
       <button type="button" class="btn primary btn-block" id="btn-create-game">Stwórz grę</button>
-      <div class="join-divider">lub dołącz</div>
+      <button type="button" class="btn btn-block" id="btn-go-join">Dołącz do gry</button>
+      <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
+    </section>
+
+    <!-- Dołącz: lista gier lub kod -->
+    <section id="screen-join" class="mobile-screen panel hidden">
+      <h2>Dołącz do gry</h2>
+      <p class="setup-hint">Wybierz pokój z listy lub wpisz kod od hosta.</p>
+      <div id="room-list-status" class="room-list-status">Szukam gier…</div>
+      <ul id="room-list" class="room-list" aria-label="Dostępne gry"></ul>
+      <button type="button" class="btn btn-small btn-ghost room-list-refresh" id="btn-refresh-rooms">Odśwież listę</button>
+      <div class="join-divider">lub wpisz kod</div>
       <label class="join-code-label">
         Kod pokoju
         <input type="text" id="join-code-input" class="join-code-input" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="np. A7K2M9">
       </label>
-      <button type="button" class="btn btn-block" id="btn-join-game">Dołącz do gry</button>
-      <p class="setup-hint mobile-footer-hint"><a href="/local.html">Graj lokalnie na PC</a> (klawiatura, 4 graczy)</p>
+      <button type="button" class="btn primary btn-block" id="btn-join-by-code">Dołącz kodem</button>
+      <button type="button" class="btn btn-block btn-ghost" id="btn-join-back">Wróć</button>
     </section>
 
     <!-- Krok 1: tylko nick -->
@@ -122,6 +133,6 @@
   <script src="/js/tracks-catalog.js?v=22"></script>
   <script src="/js/track-render.js?v=22"></script>
   <script src="/js/player-colors.js"></script>
-  <script src="/js/online-client.js?v=28"></script>
+  <script src="/js/online-client.js?v=29"></script>
 </body>
 </html>

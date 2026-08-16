@@ -18,6 +18,7 @@
   let playerSessionId = null;
   let trackWarmupId = null;
   let trackWarmupPromise = null;
+  let roomListTimer = null;
   const trails = new Map();
 
   const SESSION_KEY = 'zuzel_player_session';
@@ -76,15 +77,87 @@
   const $ = (id) => document.getElementById(id);
 
   function showScreen(name) {
-    for (const id of ['screen-landing', 'screen-profile', 'screen-lobby', 'screen-game']) {
+    for (const id of ['screen-landing', 'screen-join', 'screen-profile', 'screen-lobby', 'screen-game']) {
       $(id).classList.toggle('hidden', id !== name);
     }
+    if (name === 'screen-join') startRoomListRefresh();
+    else stopRoomListRefresh();
   }
 
   function escapeHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+  }
+
+  function goToJoinProfile(code) {
+    clearRoomSession();
+    pendingAction = 'join';
+    pendingJoinCode = code;
+    $('profile-title').textContent = 'Dołącz do gry — podaj nick';
+    showScreen('screen-profile');
+  }
+
+  function renderRoomList(rooms) {
+    const list = $('room-list');
+    const status = $('room-list-status');
+    if (!list || !status) return;
+
+    if (!rooms?.length) {
+      list.innerHTML = '';
+      status.textContent = 'Brak otwartych gier — poproś hosta o kod lub stwórz własną grę.';
+      return;
+    }
+
+    status.textContent = `${rooms.length} ${rooms.length === 1 ? 'gra' : rooms.length < 5 ? 'gry' : 'gier'} do dołączenia`;
+    list.innerHTML = rooms.map((room) => {
+      const teams = [room.teamAName, room.teamBName].filter(Boolean).join(' vs ');
+      const meta = [
+        `${room.players}/${room.maxPlayers} graczy`,
+        teams,
+        room.joinCode,
+      ].filter(Boolean).join(' · ');
+      return `<li><button type="button" class="room-list-item" data-code="${escapeHtml(room.joinCode)}">
+        <div class="room-list-item-host">${escapeHtml(room.hostName)}</div>
+        <div class="room-list-item-meta">${escapeHtml(meta)}</div>
+      </button></li>`;
+    }).join('');
+
+    list.querySelectorAll('.room-list-item').forEach((btn) => {
+      btn.addEventListener('click', () => goToJoinProfile(btn.dataset.code));
+    });
+  }
+
+  function requestRoomList() {
+    const status = $('room-list-status');
+    if (!status) return;
+    if (!socket.connected) {
+      status.textContent = 'Łączenie z serwerem…';
+      return;
+    }
+    socket.emit('list-rooms');
+  }
+
+  function startRoomListRefresh() {
+    stopRoomListRefresh();
+    requestRoomList();
+    roomListTimer = setInterval(requestRoomList, 5000);
+  }
+
+  function stopRoomListRefresh() {
+    if (roomListTimer) {
+      clearInterval(roomListTimer);
+      roomListTimer = null;
+    }
+  }
+
+  function joinByCode() {
+    const code = $('join-code-input').value.trim().toUpperCase();
+    if (code.length < 4) {
+      alert('Wpisz kod pokoju (6 znaków).');
+      return;
+    }
+    goToJoinProfile(code);
   }
 
   function initColorPicker() {
@@ -403,22 +476,20 @@
     showScreen('screen-profile');
   });
 
-  $('btn-join-game').addEventListener('click', () => {
-    const code = $('join-code-input').value.trim().toUpperCase();
-    if (code.length < 4) {
-      alert('Wpisz kod pokoju (6 znaków).');
-      return;
-    }
-    clearRoomSession();
-    pendingAction = 'join';
-    pendingJoinCode = code;
-    $('profile-title').textContent = 'Dołącz do gry — podaj nick';
-    showScreen('screen-profile');
+  $('btn-go-join').addEventListener('click', () => {
+    $('join-code-input').value = '';
+    showScreen('screen-join');
   });
 
+  $('btn-join-by-code').addEventListener('click', () => joinByCode());
+  $('btn-refresh-rooms').addEventListener('click', () => requestRoomList());
+  $('btn-join-back').addEventListener('click', () => showScreen('screen-landing'));
+
   $('btn-profile-back').addEventListener('click', () => {
+    const fromJoin = pendingAction === 'join';
     pendingAction = null;
-    showScreen('screen-landing');
+    pendingJoinCode = '';
+    showScreen(fromJoin ? 'screen-join' : 'screen-landing');
   });
 
   $('btn-profile-confirm').addEventListener('click', () => {
@@ -543,7 +614,13 @@
     const saved = loadRoomSession();
     if (saved?.joinCode && saved?.sessionId) {
       attemptRejoin();
+      return;
     }
+    if (!$('screen-join').classList.contains('hidden')) requestRoomList();
+  });
+
+  socket.on('room-list', ({ rooms } = {}) => {
+    renderRoomList(rooms || []);
   });
 
   socket.on('disconnect', () => {
