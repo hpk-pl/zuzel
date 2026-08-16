@@ -20,6 +20,8 @@
   let trackWarmupPromise = null;
   let roomListTimer = null;
   let matchEndOverlayKey = null;
+  let matchEndRecordedKey = null;
+  let matchEndShowCta = false;
   let rejoinInProgress = false;
   const trails = new Map();
 
@@ -401,6 +403,12 @@
       : 'Wszyscy gracze muszą wybrać drużynę, kolor i kliknąć Gotowy.';
   }
 
+  function getHostName(state) {
+    if (!state?.hostId) return '';
+    const host = (state.lobbyPlayers || []).find((p) => p.socketId === state.hostId && p.connected !== false);
+    return host?.name?.trim() || '';
+  }
+
   function updateOverlay(state) {
     const overlay = $('overlay');
     const content = $('overlay-content');
@@ -436,14 +444,24 @@
     if (state.state === 'match_finished' && state.matchSummary) {
       overlay.classList.remove('hidden');
       const s = state.matchSummary;
-      const key = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
-      if (key !== matchEndOverlayKey) {
-        matchEndOverlayKey = key;
+      const resultKey = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
+      const overlayKey = `${resultKey}:${state.isHost}:${state.hostId || ''}`;
+      let showCta = false;
+      if (resultKey !== matchEndRecordedKey) {
+        matchEndRecordedKey = resultKey;
+        showCta = window.PlayClubBridge?.recordMatchEndAnalytics(s) ?? false;
+      }
+      if (overlayKey !== matchEndOverlayKey) {
+        matchEndOverlayKey = overlayKey;
+        const hostName = getHostName(state);
         content.innerHTML = window.PlayClubBridge
           ? PlayClubBridge.buildMatchEndOverlayHtml({
             summary: s,
             showRematch: !!state.isHost,
             canStartNewGame: !!state.isHost,
+            isHost: !!state.isHost,
+            hostName,
+            showCta,
           })
           : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
       }
@@ -451,6 +469,7 @@
     }
 
     matchEndOverlayKey = null;
+    matchEndRecordedKey = null;
 
     overlay.classList.add('hidden');
   }
@@ -686,8 +705,7 @@
   });
 
   socket.on('connect', () => {
-    const saved = loadRoomSession();
-    if (saved?.joinCode && saved?.sessionId) {
+    if (pendingRejoinOnConnect && hasSavedRoomSession()) {
       attemptRejoin({ silent: !isInActiveRoom() });
       return;
     }
@@ -701,8 +719,9 @@
 
   socket.on('disconnect', () => {
     setTurn(false);
+    pendingRejoinOnConnect = true;
     if (rejoinInProgress) return;
-    if (loadRoomSession() && isInActiveRoom()) {
+    if (hasSavedRoomSession() && isInActiveRoom()) {
       showReconnectBanner();
     }
   });
@@ -720,6 +739,7 @@
 
   socket.on('room-ready', (data) => {
     rejoinInProgress = false;
+    pendingRejoinOnConnect = false;
     joinCode = data.joinCode;
     mySlot = data.slot;
     const sid = data.sessionId || getOrCreatePlayerSessionId();
@@ -757,15 +777,17 @@
   socket.on('error', ({ message }) => {
     rejoinInProgress = false;
     if (isRejoinError(message)) {
+      pendingRejoinOnConnect = false;
       clearRoomSession();
       hideReconnectBanner();
+      hideOverlay();
       if (isInActiveRoom()) {
         showScreen('screen-landing');
         alert(message);
       }
       return;
     }
-    if (loadRoomSession() && isInActiveRoom()) showReconnectBanner(message);
+    if (hasSavedRoomSession() && isInActiveRoom()) showReconnectBanner(message);
     else alert(message);
   });
 

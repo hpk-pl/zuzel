@@ -394,8 +394,17 @@ function updateOverlay(state) {
     ).join('');
     const playersHtml = `<div class="heat-results">${players}</div>`;
     const key = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
-    if (key !== window._matchEndOverlayKey) {
-      window._matchEndOverlayKey = key;
+    if (key !== window._matchEndRecordedKey) {
+      window._matchEndRecordedKey = key;
+      window._matchEndShowCta = window.PlayClubBridge?.recordMatchEndAnalytics({
+        winner: s.winner,
+        teamA: { points: s.teamA.points },
+        teamB: { points: s.teamB.points },
+      }) ?? false;
+    }
+    const overlayKey = key;
+    if (overlayKey !== window._matchEndOverlayKey) {
+      window._matchEndOverlayKey = overlayKey;
       content.innerHTML = window.PlayClubBridge
         ? PlayClubBridge.buildMatchEndOverlayHtml({
           summary: {
@@ -405,7 +414,9 @@ function updateOverlay(state) {
           },
           showRematch: true,
           canStartNewGame: true,
+          isHost: true,
           playersHtml,
+          showCta: window._matchEndShowCta,
         })
         : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
     }
@@ -413,6 +424,7 @@ function updateOverlay(state) {
   }
 
   window._matchEndOverlayKey = null;
+  window._matchEndRecordedKey = null;
 
   overlay.classList.add('hidden');
 }
