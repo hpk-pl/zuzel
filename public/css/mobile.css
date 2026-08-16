@@ -434,6 +434,12 @@
   font-size: 0.95rem;
 }
 
+.reconnect-dismiss {
+  display: block;
+  margin: 0.5rem auto 0;
+  font-size: 0.8rem;
+}
+
 .lobby-players .offline-badge {
   font-size: 0.65rem;
   text-transform: uppercase;

@@ -182,6 +182,18 @@ class GameRoom {
           if (rider) rider.input.turnLeft = false;
         }
       } else {
+        if (conn?.sessionId && (this.state === 'lobby' || this.state === 'match_finished')) {
+          this.disconnectedSessions.set(conn.sessionId, {
+            slot: conn.slot,
+            name: conn.name,
+            team: conn.team,
+            color: conn.color,
+            speedPercent: conn.speedPercent,
+            sessionId: conn.sessionId,
+            wasHost,
+            ready: conn.ready ?? false,
+          });
+        }
         this.connections.delete(socketId);
         if (this.state === 'lobby' || this.state === 'match_finished') {
           if (slot != null) this.riders.delete(slot);
