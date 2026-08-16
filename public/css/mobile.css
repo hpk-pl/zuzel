@@ -260,6 +260,124 @@
   margin-left: auto;
 }
 
+.lobby-players .ready-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #3fb950;
+  margin-left: auto;
+}
+
+.lobby-players .not-ready-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #8b949e;
+  margin-left: 0.35rem;
+}
+
+.lobby-players .kick-btn {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  background: transparent;
+  border: 1px solid rgba(255, 100, 100, 0.45);
+  color: #ff7b72;
+}
+
+.lobby-host-teams label {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.9rem;
+}
+
+.lobby-host-teams input {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.lobby-my-setup {
+  margin: 1rem 0;
+  padding: 0.85rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.lobby-my-setup h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.lobby-field-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #8b949e;
+  margin-bottom: 0.35rem;
+}
+
+.lobby-team-btns {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.lobby-team-btn {
+  flex: 1;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.lobby-team-btn.selected {
+  border-color: #3fb950;
+  box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.35);
+}
+
+.lobby-team-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#btn-lobby-ready.ready-active {
+  background: linear-gradient(180deg, #56d364 0%, #2ea043 100%);
+}
+
+.lobby-speed-picker {
+  margin-bottom: 0.85rem;
+}
+
+.lobby-speed-btn {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.color-option.taken {
+  opacity: 0.25;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.color-option.taken::after {
+  content: '✕';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.lobby-leave-btn {
+  margin-top: 1rem;
+}
+
+.lobby-ready-status {
+  margin: -0.35rem 0 0.5rem;
+}
+
+.lobby-players-heading {
+  margin-bottom: 0.25rem;
+}
+
 /* Gra w poziomie: tor po lewej, SKRĘĆ po prawej */
 @media (orientation: landscape) {
   .mobile-app:has(#screen-game:not(.hidden)) {

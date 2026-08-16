@@ -4,7 +4,10 @@
 
   let pendingAction = null;
   let pendingJoinCode = '';
-  let selectedColor = PICKABLE_COLORS[0];
+  let selectedColor = null;
+  let selectedTeam = null;
+  let lobbyReady = false;
+  let lobbySyncing = false;
   let mySlot = null;
   let joinCode = null;
   let gameState = null;
@@ -85,16 +88,73 @@
   }
 
   function initColorPicker() {
-    const container = $('color-options');
-    container.innerHTML = PICKABLE_COLORS.map((color) =>
-      `<button type="button" class="color-option${color === selectedColor ? ' selected' : ''}" data-color="${color}" style="background:${color}" aria-label="Kolor ${color}"></button>`
-    ).join('');
-    container.querySelectorAll('.color-option').forEach((btn) => {
+    renderLobbyColorPicker(null);
+  }
+
+  function getTakenColors(state, excludeSlot) {
+    return new Set(
+      (state?.lobbyPlayers || [])
+        .filter((p) => p.slot !== excludeSlot && p.color)
+        .map((p) => p.color),
+    );
+  }
+
+  function renderLobbyColorPicker(state) {
+    const container = $('lobby-color-options');
+    if (!container) return;
+    const taken = getTakenColors(state, mySlot);
+    container.innerHTML = PICKABLE_COLORS.map((color) => {
+      const takenByOther = taken.has(color) && color !== selectedColor;
+      const selected = color === selectedColor;
+      return `<button type="button" class="color-option${selected ? ' selected' : ''}${takenByOther ? ' taken' : ''}" data-color="${color}" style="background:${color}" ${takenByOther ? 'disabled' : ''} aria-label="Kolor ${color}"></button>`;
+    }).join('');
+    container.querySelectorAll('.color-option:not(.taken)').forEach((btn) => {
       btn.addEventListener('click', () => {
         selectedColor = btn.dataset.color;
-        container.querySelectorAll('.color-option').forEach((b) => b.classList.toggle('selected', b === btn));
+        lobbyReady = false;
+        renderLobbyColorPicker(gameState);
+        updateLobbyTeamButtons(gameState);
+        $('btn-lobby-ready').textContent = 'Gotowy!';
+        $('btn-lobby-ready').classList.remove('ready-active');
+        socket.emit('update-profile', { color: selectedColor });
       });
     });
+  }
+
+  function updateLobbyTeamButtons(state) {
+    const counts = { A: 0, B: 0 };
+    for (const p of state?.lobbyPlayers || []) {
+      if (p.team === 'A') counts.A += 1;
+      if (p.team === 'B') counts.B += 1;
+    }
+    const btnA = $('btn-pick-team-a');
+    const btnB = $('btn-pick-team-b');
+    if (!btnA || !btnB) return;
+    const aFull = counts.A >= 2 && selectedTeam !== 'A';
+    const bFull = counts.B >= 2 && selectedTeam !== 'B';
+    btnA.disabled = aFull;
+    btnB.disabled = bFull;
+    btnA.classList.toggle('selected', selectedTeam === 'A');
+    btnB.classList.toggle('selected', selectedTeam === 'B');
+  }
+
+  function syncMyLobbyFromState(state) {
+    const me = (state.lobbyPlayers || []).find((p) => p.slot === mySlot);
+    if (!me) return;
+    lobbySyncing = true;
+    selectedColor = me.color || selectedColor;
+    selectedTeam = me.team || selectedTeam;
+    lobbyReady = !!me.ready;
+    const lvl = SPEED_LEVELS.indexOf(me.speedPercent ?? 100);
+    speedLevel = lvl >= 0 ? lvl : 3;
+    $('btn-lobby-speed').textContent = `${SPEED_LEVELS[speedLevel]}%`;
+    $('btn-speed').textContent = `${SPEED_LEVELS[speedLevel]}%`;
+    const readyBtn = $('btn-lobby-ready');
+    readyBtn.textContent = lobbyReady ? 'Gotowy ✓' : 'Gotowy!';
+    readyBtn.classList.toggle('ready-active', lobbyReady);
+    renderLobbyColorPicker(state);
+    updateLobbyTeamButtons(state);
+    lobbySyncing = false;
   }
 
   function profilePayload() {
@@ -102,8 +162,6 @@
     if (!name) return null;
     return {
       name,
-      team: $('profile-team').value,
-      color: selectedColor,
       sessionId: getOrCreatePlayerSessionId(),
     };
   }
@@ -159,21 +217,59 @@
   function updateLobby(state) {
     joinCode = state.joinCode || joinCode;
     $('lobby-code').textContent = joinCode || '------';
-    const players = state.lobbyPlayers || [];
+    const players = (state.lobbyPlayers || []).filter((p) => p.connected !== false);
     $('lobby-count').textContent = `${players.length}/4`;
-    $('lobby-players').innerHTML = players.map((p) => `
-      <li>
-        <span class="swatch" style="background:${p.color}"></span>
-        <span>${escapeHtml(p.name)} · drużyna ${p.team}</span>
-        ${p.socketId === state.hostId ? '<span class="host-badge">host</span>' : ''}
-        ${p.connected === false ? '<span class="offline-badge">offline</span>' : ''}
-      </li>`).join('');
+    const readyCount = players.filter((p) => p.ready).length;
+    $('lobby-ready-status').textContent = `Gotowi: ${readyCount}/${players.length}`;
 
     const isHost = state.isHost;
+    $('lobby-host-teams').classList.toggle('hidden', !isHost);
+    if (isHost && !lobbySyncing) {
+      if (document.activeElement !== $('lobby-team-a-name')) {
+        $('lobby-team-a-name').value = state.teamAName || 'Drużyna A';
+      }
+      if (document.activeElement !== $('lobby-team-b-name')) {
+        $('lobby-team-b-name').value = state.teamBName || 'Drużyna B';
+      }
+    }
+
+    $('lobby-players').innerHTML = players.map((p) => {
+      const badges = [];
+      if (p.socketId === state.hostId) badges.push('<span class="host-badge">host</span>');
+      if (p.ready) badges.push('<span class="ready-badge">gotowy</span>');
+      else badges.push('<span class="not-ready-badge">czeka</span>');
+      const kickBtn = isHost && p.socketId && p.socketId !== state.hostId
+        ? `<button type="button" class="kick-btn" data-kick-slot="${p.slot}">Wyrzuć</button>`
+        : '';
+      const swatchColor = p.color || '#555';
+      const teamLabel = p.team ? `drużyna ${p.team}` : 'wybiera drużynę…';
+      const speedLabel = p.speedPercent ? ` · ${p.speedPercent}%` : '';
+      return `
+      <li>
+        <span class="swatch" style="background:${swatchColor}"></span>
+        <span>${escapeHtml(p.name)} · ${teamLabel}${speedLabel}</span>
+        ${badges.join('')}
+        ${kickBtn}
+      </li>`;
+    }).join('');
+
+    $('lobby-players').querySelectorAll('.kick-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const slot = Number(btn.dataset.kickSlot);
+        if (Number.isFinite(slot)) socket.emit('kick-player', { slot });
+      });
+    });
+
+    syncMyLobbyFromState(state);
+
     $('lobby-host-actions').classList.toggle('hidden', !isHost);
     $('lobby-wait').classList.toggle('hidden', isHost);
-    const canStart = isHost && players.length >= 1 && (state.state === 'lobby' || state.state === 'match_finished');
+    const canStart = isHost && state.lobbyCanStart
+      && (state.state === 'lobby' || state.state === 'match_finished');
     $('btn-start-match').disabled = !canStart;
+    $('lobby-start-hint').textContent = canStart
+      ? 'Wszyscy gotowi — możesz startować!'
+      : 'Wszyscy gracze muszą wybrać drużynę, kolor i kliknąć Gotowy.';
   }
 
   function updateOverlay(state) {
@@ -303,7 +399,7 @@
     clearRoomSession();
     pendingAction = 'create';
     pendingJoinCode = '';
-    $('profile-title').textContent = 'Stwórz grę — twój zawodnik';
+    $('profile-title').textContent = 'Stwórz grę — podaj nick';
     showScreen('screen-profile');
   });
 
@@ -316,7 +412,7 @@
     clearRoomSession();
     pendingAction = 'join';
     pendingJoinCode = code;
-    $('profile-title').textContent = 'Dołącz do gry — twój zawodnik';
+    $('profile-title').textContent = 'Dołącz do gry — podaj nick';
     showScreen('screen-profile');
   });
 
@@ -351,6 +447,62 @@
 
   $('btn-start-match').addEventListener('click', () => {
     socket.emit('start-match', {});
+  });
+
+  function pickTeam(team) {
+    if (lobbySyncing) return;
+    selectedTeam = team;
+    lobbyReady = false;
+    updateLobbyTeamButtons(gameState);
+    $('btn-lobby-ready').textContent = 'Gotowy!';
+    $('btn-lobby-ready').classList.remove('ready-active');
+    socket.emit('update-profile', { team });
+  }
+
+  $('btn-pick-team-a').addEventListener('click', () => pickTeam('A'));
+  $('btn-pick-team-b').addEventListener('click', () => pickTeam('B'));
+
+  $('btn-lobby-speed').addEventListener('click', () => {
+    if (lobbySyncing) return;
+    speedLevel = (speedLevel + 1) % SPEED_LEVELS.length;
+    const pct = SPEED_LEVELS[speedLevel];
+    $('btn-lobby-speed').textContent = `${pct}%`;
+    lobbyReady = false;
+    $('btn-lobby-ready').textContent = 'Gotowy!';
+    $('btn-lobby-ready').classList.remove('ready-active');
+    socket.emit('update-profile', { speedPercent: pct });
+  });
+
+  $('btn-lobby-ready').addEventListener('click', () => {
+    if (!selectedTeam || !selectedColor) {
+      alert('Wybierz kolor i drużynę.');
+      return;
+    }
+    const nextReady = !lobbyReady;
+    socket.emit('set-lobby-ready', { ready: nextReady });
+  });
+
+  let teamNamesTimer = null;
+  function emitTeamNames() {
+    if (!gameState?.isHost) return;
+    socket.emit('set-team-names', {
+      teamA: $('lobby-team-a-name').value.trim(),
+      teamB: $('lobby-team-b-name').value.trim(),
+    });
+  }
+  $('lobby-team-a-name')?.addEventListener('input', () => {
+    clearTimeout(teamNamesTimer);
+    teamNamesTimer = setTimeout(emitTeamNames, 400);
+  });
+  $('lobby-team-b-name')?.addEventListener('input', () => {
+    clearTimeout(teamNamesTimer);
+    teamNamesTimer = setTimeout(emitTeamNames, 400);
+  });
+
+  $('btn-leave-room').addEventListener('click', () => {
+    clearRoomSession();
+    socket.emit('leave-room');
+    showScreen('screen-landing');
   });
 
   const turnBtn = $('btn-turn');
@@ -401,6 +553,17 @@
     }
   });
 
+  socket.on('room-left', () => {
+    clearRoomSession();
+    showScreen('screen-landing');
+  });
+
+  socket.on('kicked', ({ message }) => {
+    clearRoomSession();
+    alert(message || 'Wyrzucono cię z pokoju.');
+    showScreen('screen-landing');
+  });
+
   socket.on('room-ready', (data) => {
     joinCode = data.joinCode;
     mySlot = data.slot;
@@ -409,6 +572,9 @@
     saveRoomSession({ joinCode: data.joinCode, sessionId: sid, slot: data.slot });
     hideReconnectBanner();
     sentRacingSpeedLimit = false;
+    selectedColor = null;
+    selectedTeam = null;
+    lobbyReady = false;
     if (!data.reconnected) showScreen('screen-lobby');
   });
 
