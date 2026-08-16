@@ -82,6 +82,34 @@
     }
     if (name === 'screen-join') startRoomListRefresh();
     else stopRoomListRefresh();
+    if (name === 'screen-landing') loadLeaderboard();
+  }
+
+  async function loadLeaderboard() {
+    const list = $('leaderboard-list');
+    const subtitle = $('leaderboard-subtitle');
+    if (!list) return;
+    try {
+      const trackId = window.getDefaultTrackId?.() || 'color-chainz-stadium';
+      const res = await fetch(`/api/leaderboard?track=${encodeURIComponent(trackId)}&limit=20`);
+      const data = await res.json();
+      if (subtitle && data.trackName) {
+        subtitle.textContent = `${data.trackName} · 4 okrążenia`;
+      }
+      if (!data.entries?.length) {
+        list.innerHTML = '<li class="leaderboard-empty">Brak wyników — bądź pierwszy!</li>';
+        return;
+      }
+      list.innerHTML = data.entries.map((e) => `
+        <li class="leaderboard-item">
+          <span class="leaderboard-rank">${e.rank}.</span>
+          <span class="leaderboard-name">${escapeHtml(e.name)}</span>
+          <span class="leaderboard-time">${e.time}</span>
+          ${e.speedPercent !== 100 ? `<span class="leaderboard-speed">${e.speedPercent}%</span>` : ''}
+        </li>`).join('');
+    } catch {
+      list.innerHTML = '<li class="leaderboard-empty">Nie udało się załadować rankingu.</li>';
+    }
   }
 
   function escapeHtml(str) {
@@ -364,7 +392,7 @@
     if (state.state === 'heat_results' && state.lastHeatResults) {
       overlay.classList.remove('hidden');
       const rows = state.lastHeatResults.map((r) =>
-        `<div style="color:${r.color}">${escapeHtml(r.name)}: <strong>${r.label}</strong> → ${r.points} pkt</div>`
+        window.formatHeatResultRow ? formatHeatResultRow(r) : `${escapeHtml(r.name)}: ${r.label}`
       ).join('');
       const nextBtn = state.isHost && state.canNextHeat
         ? '<button id="overlay-next-heat" class="btn primary overlay-btn">Następny bieg</button>'
@@ -373,6 +401,7 @@
         <div class="overlay-title">Wynik biegu ${state.heatNumber}</div>
         <div class="heat-results">${rows}</div>
         <div class="overlay-actions">${nextBtn}</div>`;
+      loadLeaderboard();
       return;
     }
 
@@ -409,7 +438,11 @@
     if (myBike) {
       let st;
       if (myBike.fallen) st = 'UPADEK';
-      else if (myBike.finished) st = 'META';
+      else if (myBike.finished) {
+        st = myBike.finishTimeMs != null && window.formatRaceTime
+          ? `META · ${formatRaceTime(myBike.finishTimeMs)}`
+          : 'META';
+      }
       else st = `Okrążenie ${myBike.lap}/${state.totalLaps}`;
       $('my-status-mobile').innerHTML = `<strong style="color:${myBike.color}">${escapeHtml(myBike.name)}</strong> · ${st} · ${myBike.speedPercent ?? 100}%`;
     } else {
@@ -687,5 +720,6 @@
   loadTrackCatalog().then(() => {
     const trackId = window.getDefaultTrackId?.() || 'classic';
     ensureTrackReady(trackId);
+    loadLeaderboard();
   }).catch(() => {});
 })();

@@ -362,7 +362,7 @@ function updateOverlay(state) {
   if (state.state === 'heat_results' && state.lastHeatResults) {
     overlay.classList.remove('hidden');
     const rows = state.lastHeatResults.map((r) =>
-      `<div style="color:${r.color}">${escapeHtml(r.name)}: <strong>${r.label}</strong> → ${r.points} pkt</div>`
+      window.formatHeatResultRow ? formatHeatResultRow(r) : `${escapeHtml(r.name)}: ${r.label}`
     ).join('');
     const nextBtn = state.canNextHeat
       ? '<button id="overlay-next-heat" class="btn primary overlay-btn">Następny bieg</button>'
@@ -411,7 +411,11 @@ function updateHudRacing(state) {
   $('lap-board').innerHTML = (state.bikes || []).map((b) => {
     let st;
     if (b.fallen) st = 'UPADEK';
-    else if (b.finished) st = 'META';
+    else if (b.finished) {
+      st = b.finishTimeMs != null && window.formatRaceTime
+        ? `META · ${formatRaceTime(b.finishTimeMs)}`
+        : 'META';
+    }
     else st = `Okr. ${b.lap}/${state.totalLaps}`;
     const pct = b.speedPercent ?? 100;
     return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st} · ${pct}%</div>`;
@@ -427,7 +431,11 @@ function updateHud(state) {
   $('lap-board').innerHTML = (state.bikes || []).map((b) => {
     let st;
     if (b.fallen) st = 'UPADEK';
-    else if (b.finished) st = 'META';
+    else if (b.finished) {
+      st = b.finishTimeMs != null && window.formatRaceTime
+        ? `META · ${formatRaceTime(b.finishTimeMs)}`
+        : 'META';
+    }
     else st = `Okr. ${b.lap}/${state.totalLaps}`;
     const pct = b.speedPercent ?? 100;
     return `<div style="color:${b.fallen ? '#888' : b.color}">${escapeHtml(b.name)}: ${st} · ${pct}%</div>`;

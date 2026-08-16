@@ -3,7 +3,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { GameManager } = require('./game');
-const { isValidTrackId, registerCustomTrack, reloadCatalog, getDefaultTrackId } = require('./tracks-catalog');
+const { isValidTrackId, registerCustomTrack, reloadCatalog, getDefaultTrackId, TRACK_META } = require('./tracks-catalog');
+const { getTopEntries } = require('./leaderboard');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
@@ -17,6 +18,16 @@ const gameManager = new GameManager();
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
+
+app.get('/api/leaderboard', (req, res) => {
+  const trackId = isValidTrackId(req.query.track) ? req.query.track : getDefaultTrackId();
+  const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+  res.json({
+    trackId,
+    trackName: TRACK_META[trackId]?.name || trackId,
+    entries: getTopEntries(trackId, limit),
+  });
+});
 
 function getSocketRoom(socket) {
   const roomId = socket.data?.roomId;
