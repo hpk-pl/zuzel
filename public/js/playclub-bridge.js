@@ -47,11 +47,18 @@
     return count === 1 || count % every === 0;
   }
 
-  function recordMatchEnd(showCta) {
+  function recordMatchEndAnalytics(summary) {
+    const showCta = shouldShowCtaOnNextMatchEnd();
     const state = loadState();
     state.matchEnds = (state.matchEnds || 0) + 1;
     saveState(state);
     if (showCta) window.PlayClubAnalytics?.trackColorChainzImpression();
+    window.PlayClubAnalytics?.trackGameComplete({
+      winner: summary?.winner,
+      scoreA: summary?.teamA?.points,
+      scoreB: summary?.teamB?.points,
+    });
+    return showCta;
   }
 
   function getBridgeHtml(showCta) {
@@ -75,8 +82,26 @@
     return `🏆 ${escapeHtml(name || 'Wygrana!')}`;
   }
 
-  function buildMatchEndOverlayHtml({ summary, showRematch, canStartNewGame = true, playersHtml = '' }) {
-    const showCta = shouldShowCtaOnNextMatchEnd();
+  function buildWaitHint({ canStartNewGame, isHost, hostName }) {
+    if (canStartNewGame) {
+      if (isHost) return '<p class="overlay-wait-host overlay-wait-host--host">Jesteś hostem — kliknij <strong>Nowa gra</strong>, aby zacząć od nowa.</p>';
+      return '';
+    }
+    if (hostName) {
+      return `<p class="overlay-wait-host">Poproś <strong>${escapeHtml(hostName)}</strong> o nową grę (przycisk u hosta).</p>`;
+    }
+    return '<p class="overlay-wait-host">Host opuścił pokój — poczekaj, aż ktoś zostanie hostem, lub wróć do menu.</p>';
+  }
+
+  function buildMatchEndOverlayHtml({
+    summary,
+    showRematch,
+    canStartNewGame = true,
+    isHost = false,
+    hostName = '',
+    playersHtml = '',
+    showCta = false,
+  }) {
     const s = summary;
     const winText = buildWinText(s);
     const rematchBtn = showRematch
@@ -86,15 +111,7 @@
       ? ''
       : ' disabled title="Tylko host może rozpocząć nową grę"';
     const newGameBtn = `<button type="button" id="overlay-new-game" class="btn overlay-btn"${newGameAttrs}>Nowa gra</button>`;
-    const waitHint = !canStartNewGame
-      ? '<p class="setup-hint overlay-wait-host">Poproś hosta o nową grę.</p>'
-      : '';
-    recordMatchEnd(showCta);
-    window.PlayClubAnalytics?.trackGameComplete({
-      winner: s.winner,
-      scoreA: s.teamA?.points,
-      scoreB: s.teamB?.points,
-    });
+    const waitHint = buildWaitHint({ canStartNewGame, isHost, hostName });
     return `
       <div class="overlay-title">🏁 Koniec meczu!</div>
       <div class="winner">${winText}</div>
@@ -121,6 +138,7 @@
     getShopUrl,
     getBridgeHtml,
     buildMatchEndOverlayHtml,
+    recordMatchEndAnalytics,
     handleOverlayClick,
   };
 })();

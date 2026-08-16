@@ -236,6 +236,17 @@
 .overlay-wait-host {
   margin: 0.75rem 0 0;
   text-align: center;
+  font-size: 0.9rem;
+  color: #f0c040;
+  line-height: 1.45;
+}
+
+.overlay-wait-host--host {
+  color: #3fb950;
+}
+
+.overlay-wait-host strong {
+  color: #e6edf3;
 }
 
 .color-picker-field {

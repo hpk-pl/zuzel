@@ -20,6 +20,8 @@
   let trackWarmupPromise = null;
   let roomListTimer = null;
   let matchEndOverlayKey = null;
+  let matchEndRecordedKey = null;
+  let matchEndShowCta = false;
   const trails = new Map();
 
   const SESSION_KEY = 'zuzel_player_session';
@@ -374,6 +376,12 @@
       : 'Wszyscy gracze muszą wybrać drużynę, kolor i kliknąć Gotowy.';
   }
 
+  function getHostName(state) {
+    if (!state?.hostId) return '';
+    const host = (state.lobbyPlayers || []).find((p) => p.socketId === state.hostId && p.connected !== false);
+    return host?.name?.trim() || '';
+  }
+
   function updateOverlay(state) {
     const overlay = $('overlay');
     const content = $('overlay-content');
@@ -409,14 +417,24 @@
     if (state.state === 'match_finished' && state.matchSummary) {
       overlay.classList.remove('hidden');
       const s = state.matchSummary;
-      const key = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
-      if (key !== matchEndOverlayKey) {
-        matchEndOverlayKey = key;
+      const resultKey = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
+      const overlayKey = `${resultKey}:${state.isHost}:${state.hostId || ''}`;
+      let showCta = false;
+      if (resultKey !== matchEndRecordedKey) {
+        matchEndRecordedKey = resultKey;
+        showCta = window.PlayClubBridge?.recordMatchEndAnalytics(s) ?? false;
+      }
+      if (overlayKey !== matchEndOverlayKey) {
+        matchEndOverlayKey = overlayKey;
+        const hostName = getHostName(state);
         content.innerHTML = window.PlayClubBridge
           ? PlayClubBridge.buildMatchEndOverlayHtml({
             summary: s,
             showRematch: !!state.isHost,
             canStartNewGame: !!state.isHost,
+            isHost: !!state.isHost,
+            hostName,
+            showCta,
           })
           : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
       }
@@ -424,6 +442,7 @@
     }
 
     matchEndOverlayKey = null;
+    matchEndRecordedKey = null;
 
     overlay.classList.add('hidden');
   }
