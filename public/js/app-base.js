@@ -9,16 +9,21 @@
   const base = detectBasePath();
   window.__BASE_PATH__ = base;
 
+  function withBase(path) {
+    const p = path.startsWith('/') ? path : `/${path}`;
+    if (!base) return p;
+    if (p === base || p.startsWith(`${base}/`)) return p;
+    return `${base}${p}`;
+  }
+
   window.appPath = function appPath(p) {
-    const path = p.startsWith('/') ? p : `/${p}`;
-    return `${base}${path}`;
+    return withBase(p);
   };
 
-  /** URL zasobu gry (obraz toru itd.) — uwzględnia BASE_PATH. */
+  /** URL zasobu gry (obraz toru itd.) — uwzględnia BASE_PATH, idempotentne. */
   window.resolveAssetUrl = function resolveAssetUrl(url) {
     if (!url || typeof url !== 'string') return url;
     if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/')) return window.appPath(url);
-    return window.appPath(`/${url}`);
+    return withBase(url.startsWith('/') ? url : `/${url}`);
   };
 })();

@@ -219,3 +219,5 @@
 
 **Konsekwencje:** `resolveAssetUrl` w `app-base.js`, normalizacja w `tracks-catalog.js`, `track-render.js`.
 
+**Follow-up (#50):** Podwójny prefiks — katalog normalizował URL, potem `preloadTrackImage` dodawał `/gry/zuzel` ponownie → `.../gry/zuzel/gry/zuzel/img/...`. Fix: idempotentne `withBase()`.
+
