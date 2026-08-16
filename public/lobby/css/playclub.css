@@ -1,0 +1,249 @@
+:root {
+  --pc-black: #0d0d0d;
+  --pc-off-white: #f0f0e8;
+  --pc-green: #39ff14;
+  --pc-yellow: #ffe135;
+  --pc-blue: #00bfff;
+  --pc-muted: #8a8a80;
+  --pc-card: #161616;
+  --pc-border: #2a2a2a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--pc-black);
+  color: var(--pc-off-white);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--pc-green);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.pc-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.pc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.pc-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+  color: var(--pc-off-white);
+  text-decoration: none;
+}
+
+.pc-logo:hover {
+  text-decoration: none;
+}
+
+.pc-logo-play {
+  color: var(--pc-off-white);
+}
+
+.pc-logo-icon {
+  color: var(--pc-green);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.pc-logo-club {
+  color: var(--pc-off-white);
+}
+
+.pc-shop-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pc-hero {
+  margin-bottom: 2rem;
+}
+
+.pc-hero h1 {
+  margin: 0;
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.pc-hero .accent {
+  color: var(--pc-green);
+}
+
+.pc-hero p {
+  margin: 0.75rem 0 0;
+  color: var(--pc-muted);
+  max-width: 36rem;
+}
+
+.pc-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.pc-game-card {
+  background: var(--pc-card);
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-game-preview {
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(180deg, rgba(13, 13, 13, 0.1), rgba(13, 13, 13, 0.85)),
+    radial-gradient(circle at 50% 40%, #1a3d12 0%, #0d0d0d 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.pc-game-preview--soon {
+  background: #121212;
+  color: #444;
+  font-size: 2rem;
+}
+
+.pc-game-body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.pc-game-title {
+  margin: 0;
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.pc-game-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--pc-muted);
+}
+
+.pc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: none;
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pc-btn:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+.pc-btn--primary {
+  background: var(--pc-green);
+  color: var(--pc-black);
+}
+
+.pc-btn--disabled {
+  background: #2a2a2a;
+  color: #666;
+  cursor: default;
+  pointer-events: none;
+}
+
+.pc-footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--pc-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  font-size: 0.9rem;
+  color: var(--pc-muted);
+}
+
+.pc-footer a {
+  color: var(--pc-off-white);
+}
+
+/* Legal pages */
+.pc-legal {
+  max-width: 42rem;
+}
+
+.pc-legal h1 {
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 800;
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+}
+
+.pc-legal .pc-updated {
+  color: var(--pc-muted);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.pc-legal h2 {
+  font-family: Poppins, Inter, sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.pc-legal p,
+.pc-legal li {
+  color: #d8d8d0;
+}
+
+.pc-back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}

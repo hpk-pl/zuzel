@@ -73,7 +73,8 @@ window.isLockedTrack = function isLockedTrack(track) {
 };
 
 window.loadTrackCatalog = function loadTrackCatalog() {
-  return fetch('/tracks.json')
+  const tracksUrl = (typeof window.appPath === 'function' ? window.appPath('/tracks.json') : '/tracks.json');
+  return fetch(tracksUrl)
     .then((r) => r.json())
     .then((data) => {
       const base = data.tracks || [];

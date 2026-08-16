@@ -656,3 +656,20 @@
     font-size: 1.15rem;
   }
 }
+
+.playclub-home-link {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #39ff14;
+  text-decoration: none;
+}
+
+.playclub-home-link.hidden {
+  display: none;
+}
+
+.playclub-home-link:hover {
+  text-decoration: underline;
+}
