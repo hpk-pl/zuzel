@@ -118,8 +118,9 @@ window.registerRuntimeTrack = function registerRuntimeTrack(definition) {
   };
   if (!merged.image && existing?.image) merged.image = existing.image;
   if (!merged.preview && existing?.preview) merged.preview = existing.preview;
-  window.TRACK_BY_ID[definition.id] = merged;
+  const normalized = normalizeTrackAssets(merged);
+  window.TRACK_BY_ID[definition.id] = normalized;
   const idx = window.TRACK_CATALOG.findIndex((t) => t.id === definition.id);
-  if (idx >= 0) window.TRACK_CATALOG[idx] = merged;
-  else window.TRACK_CATALOG.push(merged);
+  if (idx >= 0) window.TRACK_CATALOG[idx] = normalized;
+  else window.TRACK_CATALOG.push(normalized);
 };
