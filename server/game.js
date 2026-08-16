@@ -157,15 +157,18 @@ class GameRoom {
     if (!this.hostId) this.hostId = socketId;
   }
 
-  removeClient(socketId) {
+  removeClient(socketId, { voluntaryLeave = false } = {}) {
     const conn = this.connections.get(socketId);
     const slot = conn?.slot ?? null;
     const wasHost = this.hostId === socketId;
     this.clients.delete(socketId);
 
     if (this.mode === 'online') {
+      if (voluntaryLeave && conn?.sessionId) {
+        this.disconnectedSessions.delete(conn.sessionId);
+      }
       const inMatch = ['countdown', 'racing', 'heat_results'].includes(this.state);
-      if (inMatch && conn?.sessionId) {
+      if (!voluntaryLeave && inMatch && conn?.sessionId) {
         this.disconnectedSessions.set(conn.sessionId, {
           slot: conn.slot,
           name: conn.name,
@@ -182,7 +185,7 @@ class GameRoom {
           if (rider) rider.input.turnLeft = false;
         }
       } else {
-        if (conn?.sessionId && (this.state === 'lobby' || this.state === 'match_finished')) {
+        if (!voluntaryLeave && conn?.sessionId && (this.state === 'lobby' || this.state === 'match_finished')) {
           this.disconnectedSessions.set(conn.sessionId, {
             slot: conn.slot,
             name: conn.name,

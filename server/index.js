@@ -45,10 +45,10 @@ function getSocketRoom(socket) {
   return roomId ? gameManager.rooms.get(roomId) : null;
 }
 
-function leaveSocketRoom(socket) {
+function leaveSocketRoom(socket, { voluntaryLeave = false } = {}) {
   const room = getSocketRoom(socket);
   if (!room) return null;
-  room.removeClient(socket.id);
+  room.removeClient(socket.id, { voluntaryLeave });
   socket.leave(room.id);
   socket.data.roomId = null;
   if (!room.hasClients()) {
@@ -222,7 +222,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leave-room', () => {
-    const room = leaveSocketRoom(socket);
+    const room = leaveSocketRoom(socket, { voluntaryLeave: true });
     socket.emit('room-left');
     if (room) emitState(room);
   });
