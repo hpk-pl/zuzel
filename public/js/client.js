@@ -240,8 +240,9 @@ socket.on('connect_error', () => {
 });
 
 $('overlay-content').addEventListener('click', (e) => {
+  window.PlayClubBridge?.handleOverlayClick(e);
   if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
-  if (e.target.id === 'overlay-menu' || e.target.id === 'overlay-reset') socket.emit('reset');
+  if (e.target.id === 'overlay-reset') socket.emit('reset');
 });
 
 function releaseAllInputs() {
@@ -310,6 +311,10 @@ socket.on('state', (state) => {
   }
 
   const wasRacing = gameState?.state === 'racing';
+  const prevState = gameState;
+  if (state.state === 'countdown' && state.heatNumber === 1 && prevState?.state === 'lobby') {
+    window.PlayClubAnalytics?.trackGameStart({ mode: 'local' });
+  }
   gameState = state;
   syncTrackFromState(state);
   syncSpeedDialsFromState(state);
@@ -381,21 +386,30 @@ function updateOverlay(state) {
   if (state.state === 'match_finished' && state.matchSummary) {
     overlay.classList.remove('hidden');
     const s = state.matchSummary;
-    const winText = s.winner === 'draw' ? 'Remis!'
-      : `🏆 Wygrywa: ${s.winner === 'A' ? s.teamA.name : s.teamB.name}`;
     const players = s.players.map((p) =>
       `<div style="color:${p.color}">[${p.team}] ${escapeHtml(p.name)}: ${p.totalPoints} pkt</div>`
     ).join('');
-    content.innerHTML = `
-      <div class="overlay-title">🏁 Koniec meczu!</div>
-      <div class="winner">${winText}</div>
-      <div class="final-score">${s.teamA.name} ${s.teamA.points} : ${s.teamB.points} ${s.teamB.name}</div>
-      <div class="heat-results">${players}</div>
-      <div class="overlay-actions">
-        <button id="overlay-menu" class="btn primary overlay-btn">Menu główne</button>
-      </div>`;
+    const playersHtml = `<div class="heat-results">${players}</div>`;
+    const key = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
+    if (key !== window._matchEndOverlayKey) {
+      window._matchEndOverlayKey = key;
+      content.innerHTML = window.PlayClubBridge
+        ? PlayClubBridge.buildMatchEndOverlayHtml({
+          summary: {
+            winner: s.winner,
+            teamA: { name: s.teamA.name, points: s.teamA.points },
+            teamB: { name: s.teamB.name, points: s.teamB.points },
+          },
+          showRematch: true,
+          playersHtml,
+          otherGameTag: 'a',
+        })
+        : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
+    }
     return;
   }
+
+  window._matchEndOverlayKey = null;
 
   overlay.classList.add('hidden');
 }
@@ -494,6 +508,7 @@ function escapeHtml(str) {
 }
 
 renderFrame();
+window.PlayClubAnalytics?.trackGameView();
 
 loadTrackCatalog().then(() => {
   initTrackPicker();
