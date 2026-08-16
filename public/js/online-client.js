@@ -19,6 +19,7 @@
   let trackWarmupId = null;
   let trackWarmupPromise = null;
   let roomListTimer = null;
+  let matchEndOverlayKey = null;
   const trails = new Map();
 
   const SESSION_KEY = 'zuzel_player_session';
@@ -408,18 +409,21 @@
     if (state.state === 'match_finished' && state.matchSummary) {
       overlay.classList.remove('hidden');
       const s = state.matchSummary;
-      const winText = s.winner === 'draw' ? 'Remis!'
-        : `🏆 ${s.winner === 'A' ? s.teamA.name : s.teamB.name}`;
-      content.innerHTML = `
-        <div class="overlay-title">🏁 Koniec meczu!</div>
-        <div class="winner">${winText}</div>
-        <div class="final-score">${s.teamA.points} : ${s.teamB.points}</div>
-        <div class="overlay-actions">
-          ${state.isHost ? '<button id="overlay-reset" class="btn primary overlay-btn">Nowy mecz</button>' : ''}
-          <button id="overlay-menu" class="btn overlay-btn">Menu główne</button>
-        </div>`;
+      const key = `${s.winner}:${s.teamA?.points}:${s.teamB?.points}`;
+      if (key !== matchEndOverlayKey) {
+        matchEndOverlayKey = key;
+        content.innerHTML = window.PlayClubBridge
+          ? PlayClubBridge.buildMatchEndOverlayHtml({
+            summary: s,
+            showRematch: !!state.isHost,
+            otherGameTag: 'button',
+          })
+          : `<div class="overlay-title">🏁 Koniec meczu!</div>`;
+      }
       return;
     }
+
+    matchEndOverlayKey = null;
 
     overlay.classList.add('hidden');
   }
@@ -453,8 +457,9 @@
   }
 
   function handleState(state) {
-    const wasInMatch = gameState
-      && ['countdown', 'racing', 'heat_results', 'match_finished'].includes(gameState.state);
+    const prevState = gameState;
+    const wasInMatch = prevState
+      && ['countdown', 'racing', 'heat_results', 'match_finished'].includes(prevState.state);
     gameState = state;
     mySlot = state.mySlot;
 
@@ -472,6 +477,11 @@
 
     if (inMatch) {
       if (state.trackId) ensureTrackReady(state.trackId);
+      const startingMatch = state.state === 'countdown'
+        && state.heatNumber === 1
+        && !wasInMatch
+        && (prevState?.state === 'lobby' || prevState?.state === 'match_finished' || !prevState);
+      if (startingMatch) window.PlayClubAnalytics?.trackGameStart({ mode: state.mode });
       showScreen('screen-game');
       updateGameHud(state, state.state !== 'racing');
       updateOverlay(state);
@@ -627,11 +637,12 @@
   });
 
   $('overlay-content').addEventListener('click', (e) => {
+    window.PlayClubBridge?.handleOverlayClick(e);
     if (e.target.id === 'overlay-next-heat') socket.emit('next-heat');
     if (e.target.id === 'overlay-reset') socket.emit('reset');
-    if (e.target.id === 'overlay-menu') {
+    if (e.target.id === 'overlay-other-game' || e.target.id === 'overlay-menu') {
       clearRoomSession();
-      location.reload();
+      location.href = window.PLAYCLUB_CONFIG?.homeUrl || '/';
       return;
     }
   });
@@ -716,6 +727,7 @@
 
   initColorPicker();
   renderFrame();
+  window.PlayClubAnalytics?.trackGameView();
 
   loadTrackCatalog().then(() => {
     const trackId = window.getDefaultTrackId?.() || 'classic';

@@ -1,10 +1,11 @@
-const path = require('path');
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const { GameManager } = require('./game');
 const { isValidTrackId, registerCustomTrack, reloadCatalog, getDefaultTrackId, TRACK_META } = require('./tracks-catalog');
 const { getTopEntries } = require('./leaderboard');
+const { recordEvent } = require('./analytics');
 
 const PORT = process.env.PORT || 3000;
 const TICK_RATE = 60;
@@ -16,8 +17,18 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 const gameManager = new GameManager();
 
+app.use(express.json({ limit: '8kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/health', (_req, res) => res.json({ status: 'ok', rooms: gameManager.rooms.size }));
+
+app.post('/api/events', (req, res) => {
+  const { event, props } = req.body || {};
+  if (!recordEvent({ event, props })) {
+    res.status(400).json({ ok: false, error: 'Unknown event' });
+    return;
+  }
+  res.json({ ok: true });
+});
 
 app.get('/api/leaderboard', (req, res) => {
   const trackId = isValidTrackId(req.query.track) ? req.query.track : getDefaultTrackId();

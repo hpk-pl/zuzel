@@ -205,6 +205,35 @@ input {
   background: rgba(210, 168, 255, 0.15);
   color: #d2a8ff;
 }
+
+.shop-bridge {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.shop-bridge-powered {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+
+.shop-bridge-powered strong {
+  color: #f0c040;
+}
+
+.shop-bridge-cta {
+  display: inline-block;
+  font-weight: 600;
+  color: #3fb950;
+  text-decoration: none;
+}
+
+.shop-bridge-cta:hover {
+  text-decoration: underline;
+}
+
 .heat-totals { font-size: 1.1rem; margin-top: 0.5rem; }
 .final-score { font-size: 1.3rem; margin: 0.5rem 0; }
 .hint { font-size: 0.85rem; color: #8b949e; margin-top: 0.5rem; }
