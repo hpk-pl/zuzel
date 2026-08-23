@@ -1,0 +1,7 @@
+Inter and Poppins are licensed under the SIL Open Font License 1.1.
+
+Inter: https://github.com/rsms/inter (OFL-1.1)
+Poppins: https://fonts.google.com/specimen/Poppins (OFL-1.1)
+
+Font files in this directory were subset to latin glyphs and self-hosted
+for PlayClub (no third-party font CDN requests).
