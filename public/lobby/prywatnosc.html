@@ -17,33 +17,107 @@
 
     <a class="pc-back" href="/">← Wróć do lobby</a>
 
-    <h1>Polityka prywatności</h1>
-    <p class="pc-updated">Wersja robocza · ostatnia aktualizacja: 2026-07-25</p>
+    <h1>Polityka Prywatności PlayClub</h1>
+    <p class="pc-meta"><strong>Obowiązuje od:</strong> 2026-08-08</p>
+    <p class="pc-meta"><strong>Wersja:</strong> 2026-08</p>
+    <p class="pc-meta"><strong>Operator:</strong> HPK Sales sp. z o.o.</p>
 
-    <p>Ten dokument jest placeholderem. Pełna polityka prywatności zostanie opublikowana przed publicznym startem platformy.</p>
+    <h2>§ 1. Administrator danych</h2>
+    <p>Administratorem danych osobowych jest <strong>HPK Sales spółka z ograniczoną odpowiedzialnością</strong> z siedzibą w Pruszkowie, ul. Kwiatów Polskich 16, KRS 0001035337, NIP 5342664303.</p>
+    <p>Kontakt w sprawach danych osobowych: <a href="mailto:zamowienia@colorchainz.pl">zamowienia@colorchainz.pl</a></p>
 
-    <h2>1. Administrator</h2>
-    <p>Administratorem serwisu PlayClub jest HPK Grupa. Kontakt: <a href="mailto:kontakt@hpkgrupa.pl">kontakt@hpkgrupa.pl</a>.</p>
+    <h2>§ 2. Zasada minimalizacji danych</h2>
+    <p>PlayClub zaprojektowany jest tak, aby zbierać jak najmniej danych. Możesz grać bez podawania imienia, adresu e-mail ani zakładania konta. Nie ma rejestracji, nie ma profili użytkownika.</p>
 
-    <h2>2. Jakie dane zbieramy</h2>
+    <h2>§ 3. Jakie dane przetwarzamy i w jakim celu</h2>
+
+    <h3>3.1. Ranking graczy (Leaderboard)</h3>
+    <p><strong>Co zbieramy:</strong> nick gracza (pseudonim, max 16 znaków), czas biegu, parametry techniczne wyścigu (limit prędkości), data wpisu.</p>
+    <p><strong>Gdzie przechowywane:</strong> na serwerze Operatora (Hetzner Online GmbH, UE/EOG) w pliku <code>data/leaderboard.json</code>. Top 20 wyników jest publicznie widoczne na stronie gry.</p>
+    <p><strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. f RODO — prawnie uzasadniony interes Operatora (prowadzenie rankingu jako funkcja gry) oraz dobrowolne podanie nicku przez gracza w celu uczestnictwa w rankingu.</p>
+    <p><strong>Zalecenie:</strong> nie używaj w nicku prawdziwego imienia, nazwiska ani innych danych osobowych. Nick nie jest weryfikowany.</p>
+    <p><strong>Prawo do usunięcia:</strong> możesz zażądać usunięcia swojego wpisu z rankingu pisząc na <a href="mailto:zamowienia@colorchainz.pl">zamowienia@colorchainz.pl</a> (podaj nick i przybliżoną datę wpisu). Usuniemy wpis w ciągu 72 godzin roboczych.</p>
+    <p><strong>Okres przechowywania:</strong> wpisy przechowywane są do czasu wypchnięcia przez nowsze wyniki (max 200 wpisów per tor) lub do usunięcia na żądanie.</p>
+
+    <h3>3.2. Analityka techniczna (własny serwer)</h3>
+    <p><strong>Co zbieramy:</strong> zdarzenia techniczne: wejście na stronę gry, start meczu, koniec meczu, kliknięcia w elementy interfejsu (w tym linki do ColorChainz). Zdarzenia zawierają: typ zdarzenia, wynik meczu (wynik ogólny, bez nicków), adres URL strony, znacznik czasu.</p>
+    <p><strong>Gdzie przechowywane:</strong> na serwerze Operatora (Hetzner, UE/EOG) w pliku <code>data/events.jsonl</code>. Dane nie są przekazywane podmiotom zewnętrznym.</p>
+    <p><strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. f RODO — prawnie uzasadniony interes Operatora (analiza działania i rozwój Platformy).</p>
+    <p><strong>Okres przechowywania:</strong> logi analityczne przechowywane są przez okres nie dłuższy niż 12 miesięcy.</p>
+
+    <h3>3.3. Logi serwera (nginx)</h3>
+    <p>Serwer automatycznie rejestruje standardowe logi dostępu: adres IP, typ przeglądarki, żądane adresy URL, czas żądania.</p>
+    <p><strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. f RODO — uzasadniony interes (bezpieczeństwo serwera).</p>
+    <p><strong>Okres przechowywania:</strong> logi nginx przechowywane są przez okres nie dłuższy niż 30 dni.</p>
+
+    <h3>3.4. Dane lokalne przeglądarki (localStorage)</h3>
+    <p>Gra przechowuje dane lokalnie w przeglądarce użytkownika (localStorage). Dane te nie są wysyłane na serwer zewnętrzny i pozostają wyłącznie na urządzeniu użytkownika.</p>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Klucz</th>
+          <th scope="col">Cel</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>zuzel_player_session</code></td>
+          <td>UUID sesji gracza — reconnect po rozłączeniu</td>
+        </tr>
+        <tr>
+          <td><code>zuzel_room_session</code></td>
+          <td>Kod pokoju i dane sesji multiplayer</td>
+        </tr>
+        <tr>
+          <td><code>zuzel_playclub_bridge</code></td>
+          <td>Licznik wyświetleń linku do ColorChainz (frequency cap)</td>
+        </tr>
+        <tr>
+          <td><code>zuzel_analytics_queue</code></td>
+          <td>Kolejka zdarzeń analitycznych do wysłania</td>
+        </tr>
+        <tr>
+          <td><code>zuzel-custom-tracks</code></td>
+          <td>Własne tory stworzone w edytorze (lokalne)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Dane z localStorage można usunąć w ustawieniach przeglądarki (Ustawienia → Prywatność → Dane witryn).</p>
+
+    <h3>3.5. Fonty</h3>
+    <p>PlayClub używa fontów (Inter, Poppins) hostowanych bezpośrednio na serwerze Operatora (Hetzner, UE/EOG). Pliki fontów serwowane są z domeny playclub.pl — brak połączeń z zewnętrznymi serwerami fontów (Google Fonts ani innymi). Ładowanie fontów nie wiąże się z przekazywaniem danych użytkownika podmiotom trzecim.</p>
+
+    <h2>§ 4. Brak cookies analitycznych i marketingowych</h2>
+    <p>PlayClub nie używa cookies analitycznych ani marketingowych podmiotów trzecich. Platforma nie zawiera Google Analytics, Facebook Pixel ani podobnych narzędzi śledzących.</p>
+    <p>Socket.IO (technologia multiplayer) może technicznie korzystać z sesyjnych mechanizmów połączenia — są one niezbędne do działania gry i wygasają po zakończeniu sesji.</p>
+
+    <h2>§ 5. Odbiorcy danych</h2>
+    <p>Dane przetwarzane w związku z PlayClub nie są sprzedawane ani udostępniane podmiotom trzecim w celach marketingowych.</p>
+    <p>Dane mogą być dostępne dla:</p>
     <ul>
-      <li><strong>Nick w grze</strong> — podajesz dobrowolnie, nie jest powiązany z kontem.</li>
-      <li><strong>Identyfikator sesji</strong> — w localStorage przeglądarki, do reconnect w pokoju gry.</li>
-      <li><strong>Zdarzenia analityczne</strong> — anonimowe statystyki gry (np. rozpoczęcie meczu, kliknięcie CTA).</li>
-      <li><strong>Logi serwera</strong> — standardowe dane techniczne (adres IP, czas żądania).</li>
+      <li><strong>Hetzner Online GmbH</strong> — dostawca infrastruktury serwerowej (UE/EOG, podmiot przetwarzający)</li>
+      <li>organów uprawnionych na podstawie prawa (np. sądy, organy ścigania) — wyłącznie na żądanie</li>
     </ul>
 
-    <h2>3. Cele przetwarzania</h2>
-    <p>Dane służą do działania gry online, utrzymania pokoi, statystyk użytkowania oraz bezpieczeństwa serwisu.</p>
+    <h2>§ 6. Prawa osób, których dane dotyczą</h2>
+    <p>Przysługuje prawo do: dostępu, sprostowania, usunięcia, ograniczenia przetwarzania, sprzeciwu — w zakresie przewidzianym RODO.</p>
+    <p>Wnioski: <a href="mailto:zamowienia@colorchainz.pl">zamowienia@colorchainz.pl</a></p>
+    <p>Skarga: Prezes Urzędu Ochrony Danych Osobowych (<a href="https://uodo.gov.pl" target="_blank" rel="noopener noreferrer">uodo.gov.pl</a>).</p>
 
-    <h2>4. Pliki cookies i localStorage</h2>
-    <p>Gry mogą zapisywać dane w localStorage przeglądarki (sesja gracza, licznik CTA sklepu). Nie wymagamy logowania.</p>
+    <h2>§ 7. Wiek</h2>
+    <p>PlayClub nie jest świadomie kierowany do dzieci poniżej 13. roku życia. Operator nie zbiera świadomie danych dzieci. Jeżeli rodzic lub opiekun stwierdzi że dziecko podało dane osobowe (np. prawdziwe imię w nicku rankingowym), może zażądać ich usunięcia pisząc na <a href="mailto:zamowienia@colorchainz.pl">zamowienia@colorchainz.pl</a>.</p>
 
-    <h2>5. Fonty i zasoby zewnętrzne</h2>
-    <p>Fonty (Inter, Poppins) są hostowane na naszym serwerze w UE — nie ładujemy ich z Google Fonts ani innych CDN poza UE.</p>
+    <h2>§ 8. Związek z ColorChainz</h2>
+    <p>PlayClub jest projektem ColorChainz (<a href="https://colorchainz.pl" target="_blank" rel="noopener noreferrer">colorchainz.pl</a>), prowadzonym przez tego samego operatora — HPK Sales sp. z o.o. Kliknięcie w linki do ColorChainz w grze lub na Platformie przenosi użytkownika na osobną stronę, której dotyczy odrębna Polityka Prywatności colorchainz.pl.</p>
 
-    <h2>6. Twoje prawa</h2>
-    <p>Masz prawo do informacji o przetwarzaniu danych oraz do kontaktu z administratorem w sprawie prywatności.</p>
+    <h2>§ 9. Zmiany Polityki</h2>
+    <p>O istotnych zmianach poinformujemy przez komunikat na Platformie. Data wersji widoczna jest w nagłówku dokumentu.</p>
+
+    <p class="pc-footer-note">
+      HPK Sales sp. z o.o., ul. Kwiatów Polskich 16, 05-800 Pruszków<br>
+      <a href="mailto:zamowienia@colorchainz.pl">zamowienia@colorchainz.pl</a><br>
+      PlayClub — A ColorChainz project
+    </p>
   </div>
 </body>
 </html>

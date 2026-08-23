@@ -237,9 +237,70 @@ a:hover {
   margin: 1.75rem 0 0.5rem;
 }
 
+.pc-legal h3 {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 1.25rem 0 0.35rem;
+  color: var(--pc-off-white);
+}
+
 .pc-legal p,
 .pc-legal li {
   color: #d8d8d0;
+}
+
+.pc-legal ul {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.25rem;
+}
+
+.pc-legal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.9rem;
+}
+
+.pc-legal th,
+.pc-legal td {
+  border: 1px solid var(--pc-border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.pc-legal th {
+  background: var(--pc-card);
+  color: var(--pc-off-white);
+  font-weight: 600;
+}
+
+.pc-legal .pc-meta {
+  color: var(--pc-muted);
+  font-size: 0.9rem;
+  margin: 0 0 0.35rem;
+}
+
+.pc-legal h2:first-of-type {
+  margin-top: 2rem;
+}
+
+.pc-legal .pc-footer-note {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--pc-border);
+  color: var(--pc-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.pc-legal code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--pc-card);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
 }
 
 .pc-back {
