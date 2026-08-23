@@ -46,7 +46,11 @@ gameApp.get('/api/leaderboard', (req, res) => {
   });
 });
 
+const fontsDir = path.join(publicDir, 'fonts');
+
 if (BASE_PATH) {
+  // Fonty z Hetzner — bez Google Fonts; /fonts/ wspólne dla lobby (/) i gry (BASE_PATH).
+  app.use('/fonts', express.static(fontsDir));
   app.use(BASE_PATH, gameApp);
   app.use('/', express.static(lobbyDir));
 } else {
