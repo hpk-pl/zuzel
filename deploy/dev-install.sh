@@ -22,6 +22,7 @@ SERVICE_NAME="zuzel-dev"
 PORT=3083
 DOMAIN="zuzel-dev.hpkgrupa.pl"
 PROD_DIR="$HOME/projects/zuzel"
+DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$(realpath "$APP_DIR" 2>/dev/null || echo "$APP_DIR")" == "$(realpath "$PROD_DIR")" ]]; then
   echo "Błąd: APP_DIR nie może być katalogiem produkcyjnym $PROD_DIR"
@@ -50,18 +51,26 @@ fi
 git checkout "$DEV_BRANCH"
 git pull --ff-only origin "$DEV_BRANCH"
 
+# develop często startuje z main sprzed deploy/* — scal main, żeby kod stagingu = aktualna baza
+if git show-ref --verify --quiet refs/remotes/origin/main; then
+  git merge origin/main --no-edit || {
+    echo "Uwaga: merge origin/main do ${DEV_BRANCH} wymaga ręcznego rozwiązania konfliktów w ${APP_DIR}"
+    exit 1
+  }
+fi
+
 echo "==> Instalacja zależności npm..."
 npm install --production
 
 echo "==> Instalacja usługi systemd (${SERVICE_NAME})..."
-sudo cp deploy/zuzel-dev.service /etc/systemd/system/${SERVICE_NAME}.service
+sudo cp "${DEPLOY_DIR}/zuzel-dev.service" "/etc/systemd/system/${SERVICE_NAME}.service"
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
 sudo systemctl restart "${SERVICE_NAME}"
 
 echo "==> Instalacja nginx (${DOMAIN})..."
 sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
-sudo cp deploy/nginx-zuzel-dev.hpkgrupa.pl.conf "/etc/nginx/sites-available/${DOMAIN}"
+sudo cp "${DEPLOY_DIR}/nginx-zuzel-dev.hpkgrupa.pl.conf" "/etc/nginx/sites-available/${DOMAIN}"
 sudo ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
 sudo nginx -t
 sudo systemctl reload nginx
