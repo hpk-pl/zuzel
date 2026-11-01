@@ -4,6 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
+# Produkcja operatora: User=deploy + ~/projects/zuzel-dev
+# Dedykowany dev SSH: User=zuzeldev, WorkingDirectory=/home/zuzeldev/zuzel (patrz docs/deploy-staging-dedicated-ssh-user.md)
 User=deploy
 Group=deploy
 WorkingDirectory=/home/deploy/projects/zuzel-dev
