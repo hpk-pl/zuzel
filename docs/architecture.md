@@ -53,12 +53,14 @@ zuzel/
 │   ├── leaderboard.json
 │   └── events.jsonl
 └── deploy/
-    ├── zuzel.service           # zuzel.hpkgrupa.pl :3080
-    ├── playclub.service        # playclub.pl :3081
-    ├── nginx-zuzel.hpkgrupa.pl.conf
-    ├── nginx-playclub.pl.conf
+    ├── zuzel.service
+    ├── playclub.service
+    ├── zuzel-dev.service
+    ├── nginx-*.conf
     ├── install.sh
-    └── playclub-install.sh
+    ├── playclub-install.sh
+    ├── dev-install.sh
+    └── dev-update.sh
 ```
 
 ### Docelowa struktura na serwerze (przyszłość)
@@ -85,12 +87,15 @@ playclub.pl/gry/quiz/     → proxy → quiz :3082
 
 ## 3. Architektura runtime
 
-### 3.1 Dwa deploye z jednego repo
+### 3.1 Deploye z jednego repo
 
-| Domena | Usługa | Port | `BASE_PATH` | Co serwuje |
-|--------|--------|------|-------------|------------|
-| `zuzel.hpkgrupa.pl` | `zuzel` | 3080 | *(pusty)* | Gra pod `/` (legacy) |
-| `playclub.pl` | `playclub` | 3081 | `/gry/zuzel` | Lobby `/` + gra `/gry/zuzel/` |
+| Domena | Usługa | Port | Katalog | Git branch | `BASE_PATH` | Co serwuje |
+|--------|--------|------|---------|------------|-------------|------------|
+| `zuzel.hpkgrupa.pl` | `zuzel` | 3080 | `~/projects/zuzel` | `main` | *(pusty)* | Gra pod `/` (legacy) |
+| `playclub.pl` | `playclub` | 3081 | `~/projects/zuzel` | `main` | `/gry/zuzel` | Lobby `/` + gra `/gry/zuzel/` |
+| `zuzel-dev.hpkgrupa.pl` | `zuzel-dev` | 3083 | `~/projects/zuzel-dev` | `develop` | *(pusty)* | Staging — **nie** playclub |
+
+Szczegóły stagingu: [deploy-dev-environment.md](deploy-dev-environment.md).
 
 ### 3.2 Routing PlayClub (BASE_PATH=/gry/zuzel)
 

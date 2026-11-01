@@ -137,6 +137,14 @@
 
 **Trigger migracji:** Druga gra na platformie LUB lobby wymaga osobnego cyklu deploy.
 
+---
+
+## 2026-11 — Staging dev (zuzel-dev.hpkgrupa.pl)
+
+**Decyzja:** Drugi deweloper pracuje na branchu `develop`; staging w osobnym katalogu `~/projects/zuzel-dev`, port 3083, usługa `zuzel-dev`. Operator instaluje skryptem `deploy/dev-install.sh` i wdraża `./deploy/dev-update.sh`. Produkcja `playclub.pl` / `main` w `~/projects/zuzel` bez współdzielenia checkoutu ze stagingiem.
+
+**Konsekwencje:** Osobne `data/` (ranking, analityka). Merge `develop` → `main` + restart `playclub`/`zuzel` tylko przez operatora po akceptacji.
+
 **Odrzucone na teraz:** Monorepo wszystkich gier w jednym `package.json`.
 
 ---
