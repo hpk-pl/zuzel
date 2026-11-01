@@ -63,27 +63,20 @@ sudo systemctl status playclub zuzel
 
 ## Codzienny workflow
 
-**Deweloper 2**
+**Deweloper 2 (samodzielnie)** — pełna instrukcja: **[deploy-staging-self-service.md](deploy-staging-self-service.md)**
 
-1. Clone repo z GitHub.
-2. Branch od `develop`: `git checkout develop && git pull`.
-3. Commity + push na `develop` lub PR do `develop`.
-4. **Nie** loguje się na produkcję ani nie uruchamia `install.sh` / `playclub-install.sh`.
+Skrót:
 
-**Operator (Ty) — wdrożenie zmian na staging**
+1. PR → merge do **`develop`** (sam, Write na repo).
+2. Staging wdraża **GitHub Actions** po pushu **albo** dev: `~/projects/zuzel-dev/deploy/staging-deploy.sh` przez SSH.
+3. **Nie** dotyka `main` ani playclub.pl.
 
-```bash
-ssh deploy@<serwer>
-cd ~/projects/zuzel && git pull origin main
-./deploy/dev-update.sh
-```
-
-**Operator — wdrożenie na playclub.pl (produkcja)**
+**Operator (Ty) — tylko produkcja**
 
 ```bash
 cd ~/projects/zuzel
-git pull origin main          # tylko main
-npm install --production
+git pull origin main          # po merge develop → main
+npm install --omit=dev
 sudo systemctl restart playclub zuzel
 ```
 

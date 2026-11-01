@@ -1,0 +1,40 @@
+# Po pushu na develop wdraża tylko zuzel-dev.hpkgrupa.pl (~/projects/zuzel-dev).
+# Nie dotyka playclub.pl ani ~/projects/zuzel (main).
+#
+# Sekrety repo (Settings → Secrets → Actions):
+#   STAGING_SSH_HOST      — np. hpk-server lub IP
+#   STAGING_SSH_USER      — deploy
+#   STAGING_SSH_PRIVATE_KEY — klucz prywatny (deploy@serwer, tylko do stagingu)
+
+name: Deploy staging (develop)
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: zuzel-staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy to zuzel-dev
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ~/projects/zuzel-dev
+            git fetch origin
+            git checkout develop
+            git pull --ff-only origin develop
+            npm install --omit=dev
+            sudo systemctl restart zuzel-dev
+            curl -sf http://127.0.0.1:3083/health
+            echo "Staging deploy OK: https://zuzel-dev.hpkgrupa.pl"
