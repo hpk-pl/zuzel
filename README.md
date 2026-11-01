@@ -124,6 +124,25 @@ curl http://127.0.0.1:3080/health
 | `deploy/zuzel.service` | Usługa systemd |
 | `deploy/nginx-zuzel.hpkgrupa.pl.conf` | Reverse proxy nginx |
 | `deploy/install.sh` | Skrypt instalacji/aktualizacji |
+| `deploy/playclub-install.sh` | PlayClub (playclub.pl) |
+| `deploy/dev-install.sh` | **Staging dev** — osobny katalog + `zuzel-dev.hpkgrupa.pl` (patrz niżej) |
+| `deploy/dev-update.sh` | Aktualizacja stagingu z brancha `develop` (bez restartu playclub) |
+
+### Staging dla drugiego dewelopera (osobno od playclub.pl)
+
+Produkcja zostaje w `~/projects/zuzel` (`main`). Staging: **`~/projects/zuzel-dev`**, branch **`develop`**, domena **`zuzel-dev.hpkgrupa.pl`**, usługa **`zuzel-dev`** (port 3083).
+
+Pełna checklista operatora: **[docs/deploy-dev-environment.md](docs/deploy-dev-environment.md)**.
+
+Skrót (jednorazowo na serwerze):
+
+```bash
+git push origin main:develop   # raz, jeśli branch develop jeszcze nie istnieje
+cd ~/projects/zuzel && git pull && ./deploy/dev-install.sh
+sudo certbot --nginx -d zuzel-dev.hpkgrupa.pl
+```
+
+Po pushu dewelopera na `develop`: `./deploy/dev-update.sh` (nie dotyka playclub.pl).
 
 ## Architektura
 
