@@ -1,0 +1,10 @@
+# Jednorazowo na serwerze (jako root):
+#   sudo visudo -f /etc/sudoers.d/zuzel-staging-deploy
+# Wklej poniższą linię (bez komentarzy na końcu linii):
+#
+# Użytkownik deploy może restartować TYLKO usługę stagingu — bez playclub/zuzel.
+
+deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart zuzel-dev
+
+# Po zapisie:
+#   sudo visudo -c -f /etc/sudoers.d/zuzel-staging-deploy
