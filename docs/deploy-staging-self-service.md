@@ -93,6 +93,16 @@ Nadal **nie** może restartować `playclub` / `zuzel` (brak sudo).
 
 ---
 
+## Wariant C (zalecany przy SSH): osobny user Linux `zuzeldev`
+
+Konto **tylko** pod staging — bez dostępu do `/home/deploy` i playclub.
+
+Pełna procedura migracji i sudoers: **[deploy-staging-dedicated-ssh-user.md](deploy-staging-dedicated-ssh-user.md)**
+
+Dev łączy się: `ssh zuzeldev@serwer`, kod w `~/zuzel`, deploy `./deploy/staging-deploy.sh`.
+
+---
+
 ## Produkcja playclub — bez zmian
 
 Tylko Ty, ręcznie, po akceptacji stagingu:
